@@ -74,6 +74,9 @@ class AppServiceProvider extends ServiceProvider
             'services.whatsapp.gupshup_api_key' => $s('whatsapp.gupshup_api_key', config('services.whatsapp.gupshup_api_key')),
             'services.whatsapp.gupshup_source' => $s('whatsapp.gupshup_source', config('services.whatsapp.gupshup_source')),
             'services.whatsapp.gupshup_app_name' => $s('whatsapp.gupshup_app_name', config('services.whatsapp.gupshup_app_name')),
+            // Legacy default reminder template (seeds the default Appointment
+            // section in App\Support\WhatsappTemplate). Per-event templates are
+            // now managed as JSON in the settings store, not via config.
             'services.whatsapp.gupshup_template_id' => $s('whatsapp.gupshup_template_id', config('services.whatsapp.gupshup_template_id')),
             'services.whatsapp.gupshup_namespace' => $s('whatsapp.gupshup_namespace', config('services.whatsapp.gupshup_namespace')),
         ]);

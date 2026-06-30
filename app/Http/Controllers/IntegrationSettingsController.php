@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Setting;
 use App\Services\Messaging\MessageService;
+use App\Support\WhatsappTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -28,7 +29,6 @@ class IntegrationSettingsController extends Controller
             'mail.from_address', 'mail.from_name',
             'messaging.whatsapp_driver',
             'whatsapp.gupshup_source', 'whatsapp.gupshup_app_name',
-            'whatsapp.gupshup_template_id', 'whatsapp.gupshup_namespace',
         ];
 
         $values = [];
@@ -41,7 +41,13 @@ class IntegrationSettingsController extends Controller
             $secretSet[$key] = Setting::has($key);
         }
 
-        return view('settings.integrations', compact('values', 'secretSet'));
+        // Dynamic WhatsApp template sections (add / edit / remove). Use the
+        // editor variant so every event — including newly-added ones — shows up.
+        $sections = WhatsappTemplate::sectionsForEditing();
+        $events = WhatsappTemplate::events();
+        $tokens = WhatsappTemplate::tokens();
+
+        return view('settings.integrations', compact('values', 'secretSet', 'sections', 'events', 'tokens'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -85,16 +91,23 @@ class IntegrationSettingsController extends Controller
             'source' => ['nullable', 'string', 'max:40'],
             'app_name' => ['nullable', 'string', 'max:120'],
             'api_key' => ['nullable', 'string', 'max:255'],
-            'template_id' => ['nullable', 'string', 'max:255'],
-            'namespace' => ['nullable', 'string', 'max:255'],
+            'sections' => ['nullable', 'array'],
+            'sections.*.event' => ['nullable', Rule::in(WhatsappTemplate::eventKeys())],
+            'sections.*.label' => ['nullable', 'string', 'max:120'],
+            'sections.*.template_id' => ['nullable', 'string', 'max:255'],
+            'sections.*.namespace' => ['nullable', 'string', 'max:255'],
+            'sections.*.body' => ['nullable', 'string', 'max:2000'],
+            'sections.*.variables' => ['nullable', 'array'],
+            'sections.*.variables.*' => ['nullable', Rule::in(WhatsappTemplate::tokenKeys())],
         ]);
 
         Setting::set('messaging.whatsapp_driver', $request->input('driver', 'log'), 'whatsapp');
         Setting::set('whatsapp.gupshup_source', $request->input('source'), 'whatsapp');
         Setting::set('whatsapp.gupshup_app_name', $request->input('app_name'), 'whatsapp');
-        Setting::set('whatsapp.gupshup_template_id', $request->input('template_id'), 'whatsapp');
-        Setting::set('whatsapp.gupshup_namespace', $request->input('namespace'), 'whatsapp');
         $this->setSecret('whatsapp.gupshup_api_key', $request->input('api_key'), 'whatsapp');
+
+        // Dynamic per-event template sections (add / edit / remove).
+        WhatsappTemplate::save($request->input('sections', []));
 
         return back()->with('success', 'WhatsApp (Gupshup) settings saved.');
     }
@@ -120,15 +133,18 @@ class IntegrationSettingsController extends Controller
 
         if ($channel === 'whatsapp') {
             // WhatsApp business-initiated messages must use an approved template.
-            $templateId = config('services.whatsapp.gupshup_template_id');
-            if (! $templateId) {
-                return back()->with('error', 'Set and save the reminder template ID first — WhatsApp needs an approved template to send.');
+            // The test exercises the Appointment reminder template (the primary
+            // no-show lever), filling its variables with sample values.
+            $section = WhatsappTemplate::forEvent('appointment');
+            if (! $section || ! $section['template_id']) {
+                return back()->with('error', 'Set and save the Appointment reminder template ID first — WhatsApp needs an approved template to send.');
             }
             if (! $to && ! $user->phone) {
                 return back()->with('error', 'Enter a test WhatsApp number (with country code), or add a phone number to your profile.');
             }
 
-            $ok = $messaging->sendWhatsappTemplate($user, $templateId, ['Today', '5:00 PM', 'Dr. Smith'], $to);
+            $params = WhatsappTemplate::resolveParams($section['variables'], WhatsappTemplate::sampleContext());
+            $ok = $messaging->sendWhatsappTemplate($user, $section['template_id'], $params, $to);
 
             if (! $ok) {
                 return back()->with('error', 'WhatsApp test failed. Check storage/logs/laravel.log for "[WhatsApp:gupshup:template]" — common causes: API key not saved, template still Pending (not yet Approved), or the number has not opted in.');

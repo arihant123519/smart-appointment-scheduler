@@ -7,11 +7,46 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Announcement extends Model
 {
-    protected $fillable = [
-        'clinic_id', 'created_by', 'title', 'body', 'channel', 'recipients_count', 'sent_at',
+    /** Audience targets for a broadcast. */
+    public const AUDIENCES = [
+        'scheduled' => 'Patients with a scheduled appointment',
+        'patients' => 'All patients',
+        'providers' => 'Providers / doctors',
+        'all' => 'All users',
     ];
 
-    protected $casts = ['sent_at' => 'datetime'];
+    protected $fillable = [
+        'clinic_id', 'created_by', 'title', 'body', 'channel', 'audience',
+        'wa_template_id', 'wa_namespace', 'wa_variables',
+        'recipients_count', 'send_at', 'status', 'sent_at',
+    ];
+
+    protected $casts = [
+        'sent_at' => 'datetime',
+        'send_at' => 'datetime',
+        'wa_variables' => 'array',
+    ];
+
+    public function scopeDue($query)
+    {
+        return $query->where('status', 'scheduled')->where('send_at', '<=', now());
+    }
+
+    public function getAudienceLabelAttribute(): string
+    {
+        return self::AUDIENCES[$this->audience] ?? $this->audience;
+    }
+
+    /** "email,whatsapp" => "Email + WhatsApp". */
+    public function getChannelLabelAttribute(): string
+    {
+        $labels = ['email' => 'Email', 'whatsapp' => 'WhatsApp'];
+
+        return collect(explode(',', (string) $this->channel))
+            ->filter()
+            ->map(fn ($c) => $labels[trim($c)] ?? ucfirst(trim($c)))
+            ->implode(' + ');
+    }
 
     public function clinic(): BelongsTo
     {

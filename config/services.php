@@ -65,8 +65,12 @@ return [
         'gupshup_api_key' => env('GUPSHUP_API_KEY'),
         'gupshup_source' => env('GUPSHUP_SOURCE'),     // sender WhatsApp number (digits, with country code)
         'gupshup_app_name' => env('GUPSHUP_APP_NAME'), // Gupshup app name (src.name)
-        'gupshup_template_id' => env('GUPSHUP_TEMPLATE_ID'), // approved reminder template id
-        'gupshup_namespace' => env('GUPSHUP_NAMESPACE'),     // template namespace (optional)
+
+        // Legacy default reminder template. Templates are now managed per event
+        // in Settings → Integrations (see App\Support\WhatsappTemplate); this
+        // env value seeds the default "Appointment reminder" section.
+        'gupshup_template_id' => env('GUPSHUP_TEMPLATE_ID'),
+        'gupshup_namespace' => env('GUPSHUP_NAMESPACE'),
     ],
 
     'telehealth' => [

@@ -79,6 +79,11 @@ class CalendarController extends Controller
 
         AuditLog::record('rescheduled_drag', $appointment);
 
+        // Re-derive lead-time reminders for the new time and notify the patient.
+        $notifications = app(\App\Services\AppointmentNotificationService::class);
+        $notifications->syncLeadTimes($appointment);
+        $notifications->notifyRescheduled($appointment);
+
         return response()->json(['ok' => true]);
     }
 }

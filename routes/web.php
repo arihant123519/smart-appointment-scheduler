@@ -3,6 +3,7 @@
 use App\Http\Controllers\AiBookingController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\AppointmentNotificationController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthController;
@@ -106,6 +107,9 @@ Route::middleware('auth')->group(function () {
         Route::get('appointments/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show');
     });
     Route::middleware('can:manage appointments')->group(function () {
+        // Appointment Notifications settings (lead-time + status-change messages)
+        Route::get('appointments-notifications/settings', [AppointmentNotificationController::class, 'edit'])->name('appointments.notifications.edit');
+        Route::put('appointments-notifications/settings', [AppointmentNotificationController::class, 'update'])->name('appointments.notifications.update');
         Route::get('appointments-create/new', [AppointmentController::class, 'create'])->name('appointments.create');
         Route::post('appointments', [AppointmentController::class, 'store'])->name('appointments.store');
         Route::get('appointments/{appointment}/edit', [AppointmentController::class, 'edit'])->name('appointments.edit');
@@ -160,6 +164,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:manage reminders')->group(function () {
         Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
         Route::post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+        Route::put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+        Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
     });
 
     // Users

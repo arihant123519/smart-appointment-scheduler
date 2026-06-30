@@ -11,7 +11,13 @@ Artisan::command('inspire', function () {
 // Dispatch due appointment reminders / confirmation requests every 5 minutes.
 // (Run `php artisan schedule:work` locally, or a cron entry calling
 //  `php artisan schedule:run` every minute in production.)
+// `reminders:send` is email-only; `appointments:notify` sends the configurable
+// lead-time reminders (email + WhatsApp) for Booked / Confirmed appointments.
 Schedule::command('reminders:send')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('appointments:notify')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('announcements:dispatch')->everyFiveMinutes()->withoutOverlapping();
+// "You missed your appointment" follow-ups for past, uncompleted appointments.
+Schedule::command('appointments:notify-missed')->everyFifteenMinutes()->withoutOverlapping();
 
 // Notify patients & providers of their appointments each morning.
 Schedule::command('appointments:notify-today')->dailyAt('07:00');

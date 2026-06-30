@@ -62,9 +62,19 @@ class DashboardController extends Controller
             ->upcoming()->where('no_show_score', '>=', 70)
             ->orderByDesc('no_show_score')->limit(5)->get();
 
+        // Missed appointments (past + not completed). Providers see only their
+        // own; front desk / clinic admin / system admin see the whole clinic.
+        $missedQuery = Appointment::missed()->with(['patient', 'provider.user', 'service']);
+        if ($user->hasRole('provider') && ! $user->hasAnyRole(['clinic_admin', 'system_admin', 'front_desk']) && $user->provider) {
+            $missedQuery->where('provider_id', $user->provider->id);
+        }
+        $missedCount = (clone $missedQuery)->count();
+        $missedAppointments = $missedQuery->orderByDesc('start_at')->limit(8)->get();
+
         return view('dashboard.index', compact(
             'stats', 'noShowRate', 'statusBreakdown',
-            'chartLabels', 'chartData', 'todaysAppointments', 'highRisk'
+            'chartLabels', 'chartData', 'todaysAppointments', 'highRisk',
+            'missedAppointments', 'missedCount'
         ));
     }
 

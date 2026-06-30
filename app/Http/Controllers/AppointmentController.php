@@ -8,6 +8,7 @@ use App\Models\Provider;
 use App\Models\Resource;
 use App\Models\Service;
 use App\Models\User;
+use App\Services\AppointmentNotificationService;
 use App\Services\ReminderService;
 use App\Services\SchedulingService;
 use App\Services\WaitlistService;
@@ -96,6 +97,7 @@ class AppointmentController extends Controller
 
                 foreach ($appointments as $appt) {
                     $reminders->scheduleFor($appt);
+                    app(AppointmentNotificationService::class)->syncLeadTimes($appt);
                     AuditLog::record('created', $appt, null, $appt->toArray());
                 }
 
@@ -113,6 +115,7 @@ class AppointmentController extends Controller
         }
 
         $reminders->scheduleFor($appointment);
+        app(AppointmentNotificationService::class)->syncLeadTimes($appointment);
         AuditLog::record('created', $appointment, null, $appointment->toArray());
 
         return redirect()->route('appointments.show', $appointment)
@@ -139,6 +142,8 @@ class AppointmentController extends Controller
         $data = $this->validateAppointment($request, $appointment);
         $before = $appointment->toArray();
 
+        $rescheduled = false;
+
         try {
             // If time changed, run conflict-safe reschedule.
             $newStart = Carbon::parse($data['start_at']);
@@ -147,6 +152,7 @@ class AppointmentController extends Controller
                 $service = Service::find($data['service_id']);
                 $end = $newStart->copy()->addMinutes($service?->duration ?? 30);
                 $this->scheduling->reschedule($appointment, $newStart, $end);
+                $rescheduled = true;
             }
 
             $appointment->update([
@@ -160,10 +166,18 @@ class AppointmentController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
+        // Start time / provider may have changed — re-derive lead-time reminders,
+        // and tell the patient if the appointment was actually moved.
+        $notifications = app(AppointmentNotificationService::class);
+        $notifications->syncLeadTimes($appointment);
+        if ($rescheduled) {
+            $notifications->notifyRescheduled($appointment);
+        }
+
         AuditLog::record('updated', $appointment, $before, $appointment->fresh()->toArray());
 
         return redirect()->route('appointments.show', $appointment)
-            ->with('success', 'Appointment updated.');
+            ->with('success', $rescheduled ? 'Appointment rescheduled — patient notified.' : 'Appointment updated.');
     }
 
     public function destroy(Appointment $appointment): RedirectResponse
@@ -196,6 +210,12 @@ class AppointmentController extends Controller
 
         $appointment->save();
         AuditLog::record('status_changed', $appointment, $before, $appointment->toArray());
+
+        // Notify the patient of the new status (email + WhatsApp), and re-derive
+        // lead-time reminders (scheduled for Booked / Confirmed, cleared otherwise).
+        $notifications = app(AppointmentNotificationService::class);
+        $notifications->notifyStatusChange($appointment);
+        $notifications->syncLeadTimes($appointment);
 
         // Freed slot? Auto-offer it to the smart waitlist.
         $offered = null;

@@ -35,7 +35,7 @@ class Appointment extends Model
         'start_at', 'end_at', 'status', 'channel', 'no_show_score',
         'is_telehealth', 'telehealth_link', 'reason', 'notes',
         'confirmed_at', 'checked_in_at', 'cancelled_at', 'cancellation_reason',
-        'created_by',
+        'missed_notified_at', 'created_by',
     ];
 
     protected $casts = [
@@ -44,6 +44,7 @@ class Appointment extends Model
         'confirmed_at' => 'datetime',
         'checked_in_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'missed_notified_at' => 'datetime',
         'is_telehealth' => 'boolean',
         'no_show_score' => 'integer',
     ];
@@ -83,6 +84,11 @@ class Appointment extends Model
         return $this->hasMany(Reminder::class);
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(AppointmentNotification::class);
+    }
+
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
@@ -107,6 +113,17 @@ class Appointment extends Model
     public function scopeActive($query)
     {
         return $query->whereNotIn('status', [self::STATUS_CANCELLED]);
+    }
+
+    /**
+     * Missed appointments: the time slot is fully over but the patient never
+     * completed it (still booked/confirmed, or explicitly marked no-show).
+     * Excludes completed, cancelled, and checked-in.
+     */
+    public function scopeMissed($query)
+    {
+        return $query->where('end_at', '<', now())
+            ->whereIn('status', [self::STATUS_BOOKED, self::STATUS_CONFIRMED, self::STATUS_NO_SHOW]);
     }
 
     public function getStatusLabelAttribute(): string

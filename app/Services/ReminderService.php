@@ -82,22 +82,12 @@ class ReminderService
                     ? 'Please confirm your appointment'
                     : 'Appointment reminder';
 
-                $templateId = config('services.whatsapp.gupshup_template_id');
-
-                if ($reminder->channel === 'whatsapp' && $templateId) {
-                    // WhatsApp requires an approved template for business-initiated
-                    // messages. Fill {{1}} day, {{2}} time, {{3}} provider.
-                    $params = [
-                        $appointment->start_at->isToday() ? 'Today' : $appointment->start_at->format('l, M j'),
-                        $appointment->start_at->format('g:i A'),
-                        $appointment->provider->name,
-                    ];
-                    $body = "You've an appointment {$params[0]} at {$params[1]} with {$params[2]}. Kindly, Be available.";
-                    $ok = $this->messages->sendWhatsappTemplate($appointment->patient, $templateId, $params);
-                } else {
-                    $body = $this->compose($reminder);
-                    $ok = $this->messages->send($appointment->patient, $subject, $body, $reminder->channel);
-                }
+                // `reminders:send` is an EMAIL-only channel: the legacy reminder
+                // cadence always goes out by email. WhatsApp (and configurable
+                // lead-time / status notifications) is handled separately by the
+                // Appointment Notifications system (`appointments:notify`).
+                $body = $this->compose($reminder);
+                $ok = $this->messages->send($appointment->patient, $subject, $body, 'email');
 
                 $reminder->update([
                     'body' => $body,

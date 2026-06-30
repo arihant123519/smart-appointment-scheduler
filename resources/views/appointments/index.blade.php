@@ -4,6 +4,7 @@
 
 @section('page_actions')
   @can('manage appointments')
+    <a href="{{ route('appointments.notifications.edit') }}" class="btn btn-outline-secondary"><i class="fi fi-rr-bell me-1"></i> Notifications</a>
     <a href="{{ route('appointments.create') }}" class="btn btn-primary"><i class="fi fi-rr-plus me-1"></i> New Appointment</a>
   @endcan
 @endsection

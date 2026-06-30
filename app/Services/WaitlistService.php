@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Appointment;
 use App\Models\WaitlistEntry;
 use App\Services\Messaging\MessageService;
+use App\Support\WhatsappTemplate;
 
 /**
  * Smart waitlist auto-fill (PRD §5.2 / §6 stage 5).
@@ -46,20 +47,34 @@ class WaitlistService
 
         $candidate->update(['status' => 'offered']);
 
-        $this->messages->send(
-            $candidate->patient,
-            'A sooner appointment just opened up',
-            implode("\n", [
-                "Hi {$candidate->patient->name},",
-                '',
-                'A slot matching your waitlist request just became available:',
-                '  • '.$appointment->start_at->format('l, F j, Y \a\t g:i A'),
-                '  • with '.$appointment->provider->name,
-                '',
-                'Log in and book it here: '.route('booking.create'),
-            ]),
-            $candidate->patient->preferred_channel,
-        );
+        $channel = $candidate->patient->preferred_channel ?? 'email';
+        $start = $appointment->start_at;
+        $section = WhatsappTemplate::forEvent('waitlist');
+
+        if ($channel === 'whatsapp' && $section && $section['template_id']) {
+            // WhatsApp business-initiated messages need an approved template.
+            // Variables are filled in their configured order; the appointment
+            // here is the freed slot being offered to the waiting patient.
+            $context = WhatsappTemplate::contextFromAppointment($appointment);
+            $context['patient_name'] = (string) ($candidate->patient->name ?? '');
+            $params = WhatsappTemplate::resolveParams($section['variables'], $context);
+            $this->messages->sendWhatsappTemplate($candidate->patient, $section['template_id'], $params);
+        } else {
+            $this->messages->send(
+                $candidate->patient,
+                'A sooner appointment just opened up',
+                implode("\n", [
+                    "Hi {$candidate->patient->name},",
+                    '',
+                    'A slot matching your waitlist request just became available:',
+                    '  • '.$start->format('l, F j, Y \a\t g:i A'),
+                    '  • with '.$appointment->provider->name,
+                    '',
+                    'Log in and book it here: '.route('booking.create'),
+                ]),
+                $channel,
+            );
+        }
 
         return $candidate;
     }

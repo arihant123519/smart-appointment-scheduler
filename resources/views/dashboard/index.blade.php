@@ -138,6 +138,42 @@
       </div>
     </div>
   </div>
+
+  {{-- Missed appointments (past + not completed) --}}
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0"><i class="fi fi-rr-calendar-xmark text-danger me-1"></i> Missed appointments
+            @if ($missedCount)<span class="badge bg-danger ms-1">{{ $missedCount }}</span>@endif
+          </h6>
+          <a href="{{ route('appointments.index', ['status' => \App\Models\Appointment::STATUS_NO_SHOW]) }}" class="btn btn-sm btn-light">View all</a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr><th>When</th><th>Patient</th><th>Provider</th><th>Service</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                @forelse ($missedAppointments as $a)
+                  <tr onclick="window.location='{{ route('appointments.show', $a) }}'" style="cursor:pointer">
+                    <td class="text-nowrap">{{ $a->start_at->format('M j, Y g:i A') }}</td>
+                    <td>{{ $a->patient->name ?? '—' }}</td>
+                    <td>{{ $a->provider->name ?? '—' }}</td>
+                    <td>{{ $a->service->name ?? '—' }}</td>
+                    <td><span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span></td>
+                  </tr>
+                @empty
+                  <tr><td colspan="5" class="text-center text-muted py-4">No missed appointments. 🎉</td></tr>
+                @endforelse
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @push('scripts')

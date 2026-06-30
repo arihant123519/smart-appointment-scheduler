@@ -23,6 +23,10 @@ class ReminderActionController extends Controller
         ]);
         AuditLog::record('confirmed_via_reminder', $appointment);
 
+        $notifications = app(\App\Services\AppointmentNotificationService::class);
+        $notifications->notifyStatusChange($appointment);
+        $notifications->syncLeadTimes($appointment);
+
         return $this->page('Confirmed', 'Thanks! Your appointment is confirmed.', $appointment, 'success');
     }
 
@@ -35,6 +39,10 @@ class ReminderActionController extends Controller
             'cancellation_reason' => 'Cancelled via reminder link',
         ]);
         AuditLog::record('cancelled_via_reminder', $appointment);
+
+        $notifications = app(\App\Services\AppointmentNotificationService::class);
+        $notifications->notifyStatusChange($appointment);
+        $notifications->cancelLeadTimes($appointment);
 
         // Auto-offer the freed slot to the smart waitlist.
         app(\App\Services\WaitlistService::class)->offerFreedSlot($appointment);
