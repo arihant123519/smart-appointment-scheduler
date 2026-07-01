@@ -58,6 +58,8 @@ class AiServiceFallbackTest extends TestCase
 
         $this->assertSame('urgent', $routing['urgency']);
         $this->assertNotEmpty($routing['specialty']);
+        $this->assertNotEmpty($routing['why_serious']);
+        $this->assertNotEmpty($routing['can_lead_to']);
     }
 
     public function test_assistant_resolves_navigation_intent(): void

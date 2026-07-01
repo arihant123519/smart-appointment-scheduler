@@ -42,18 +42,65 @@ class DashboardController extends Controller
         $statusBreakdown = Appointment::select('status', DB::raw('count(*) as total'))
             ->groupBy('status')->pluck('total', 'status')->toArray();
 
-        // Appointments per day (last 14 days) for the chart
-        $trend = Appointment::where('start_at', '>=', now()->subDays(13)->startOfDay())
-            ->select(DB::raw('DATE(start_at) as d'), DB::raw('count(*) as total'))
-            ->groupBy('d')->pluck('total', 'd')->toArray();
+        // Completion rate (last 30 days): completed vs. everything that reached
+        // a terminal outcome (completed + no-show + cancelled).
+        $completed30 = Appointment::where('start_at', '>=', $window)
+            ->where('status', Appointment::STATUS_COMPLETED)->count();
+        $terminal30 = Appointment::where('start_at', '>=', $window)
+            ->whereIn('status', [
+                Appointment::STATUS_COMPLETED,
+                Appointment::STATUS_NO_SHOW,
+                Appointment::STATUS_CANCELLED,
+            ])->count();
+        $completionRate = $terminal30 > 0 ? round($completed30 / $terminal30 * 100, 1) : 0;
+
+        // Appointments per day (last 14 days) — total booked vs. completed so the
+        // chart tells a story rather than showing a single flat line.
+        $rows = Appointment::where('start_at', '>=', now()->subDays(13)->startOfDay())
+            ->select(
+                DB::raw('DATE(start_at) as d'),
+                DB::raw('count(*) as total'),
+                DB::raw("sum(case when status = '".Appointment::STATUS_COMPLETED."' then 1 else 0 end) as completed"),
+                DB::raw("sum(case when status = '".Appointment::STATUS_NO_SHOW."' then 1 else 0 end) as no_show")
+            )
+            ->groupBy('d')->get()->keyBy('d');
 
         $chartLabels = [];
-        $chartData = [];
+        $chartData = [];      // total
+        $chartCompleted = [];
+        $chartNoShow = [];
         for ($i = 13; $i >= 0; $i--) {
             $date = today()->subDays($i);
+            $key = $date->toDateString();
             $chartLabels[] = $date->format('M j');
-            $chartData[] = $trend[$date->toDateString()] ?? 0;
+            $chartData[] = (int) ($rows[$key]->total ?? 0);
+            $chartCompleted[] = (int) ($rows[$key]->completed ?? 0);
+            $chartNoShow[] = (int) ($rows[$key]->no_show ?? 0);
         }
+
+        // Busiest hours (last 30 days) — drives an interactive hourly bar chart.
+        // Hour extraction differs by driver (MySQL HOUR() vs. SQLite strftime).
+        $hourExpr = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%H', start_at) AS INTEGER)"
+            : 'HOUR(start_at)';
+        $hourRows = Appointment::where('start_at', '>=', $window)
+            ->active()
+            ->select(DB::raw("$hourExpr as h"), DB::raw('count(*) as total'))
+            ->groupBy('h')->pluck('total', 'h')->toArray();
+
+        $hourLabels = [];
+        $hourData = [];
+        for ($h = 7; $h <= 19; $h++) {
+            $hourLabels[] = \Carbon\Carbon::createFromTime($h)->format('g A');
+            $hourData[] = (int) ($hourRows[$h] ?? 0);
+        }
+
+        // Top services (last 30 days) for a quick mix breakdown.
+        $topServices = Appointment::where('appointments.start_at', '>=', $window)
+            ->join('services', 'services.id', '=', 'appointments.service_id')
+            ->select('services.name', DB::raw('count(*) as total'))
+            ->groupBy('services.name')->orderByDesc('total')->limit(5)
+            ->pluck('total', 'services.name')->toArray();
 
         $todaysAppointments = Appointment::with(['patient', 'provider.user', 'service'])
             ->forDay($today)->active()->orderBy('start_at')->get();
@@ -64,17 +111,27 @@ class DashboardController extends Controller
 
         // Missed appointments (past + not completed). Providers see only their
         // own; front desk / clinic admin / system admin see the whole clinic.
+        $onlyOwnProvider = $user->hasRole('provider')
+            && ! $user->hasAnyRole(['clinic_admin', 'system_admin', 'front_desk'])
+            && $user->provider;
+
         $missedQuery = Appointment::missed()->with(['patient', 'provider.user', 'service']);
-        if ($user->hasRole('provider') && ! $user->hasAnyRole(['clinic_admin', 'system_admin', 'front_desk']) && $user->provider) {
+        if ($onlyOwnProvider) {
             $missedQuery->where('provider_id', $user->provider->id);
         }
         $missedCount = (clone $missedQuery)->count();
-        $missedAppointments = $missedQuery->orderByDesc('start_at')->limit(8)->get();
+        $missedAppointments = (clone $missedQuery)->orderByDesc('start_at')->limit(8)->get();
+
+        // Today's missed appointments specifically — these drive the alert popup.
+        $todaysMissed = (clone $missedQuery)->whereDate('start_at', $today)
+            ->orderBy('start_at')->get();
 
         return view('dashboard.index', compact(
-            'stats', 'noShowRate', 'statusBreakdown',
-            'chartLabels', 'chartData', 'todaysAppointments', 'highRisk',
-            'missedAppointments', 'missedCount'
+            'stats', 'noShowRate', 'completionRate', 'statusBreakdown',
+            'chartLabels', 'chartData', 'chartCompleted', 'chartNoShow',
+            'hourLabels', 'hourData', 'topServices',
+            'todaysAppointments', 'highRisk',
+            'missedAppointments', 'missedCount', 'todaysMissed'
         ));
     }
 

@@ -84,7 +84,7 @@ class AiService
     /**
      * Smart symptom routing — suggest specialty + urgency (informational only).
      *
-     * @return array{specialty:?string, urgency:string, advice:string}
+     * @return array{specialty:?string, urgency:string, advice:string, why_serious:string, can_lead_to:string}
      */
     public function routeSymptoms(string $text): array
     {
@@ -346,10 +346,13 @@ class AiService
             ],
             'symptom_routing' => [
                 'You are a triage helper (informational only, NOT a diagnosis). From the described '.
-                'symptoms suggest the most relevant medical specialty and an urgency level. Reply ONLY '.
-                'with JSON: {"specialty":string,"urgency":"routine"|"soon"|"urgent",'.
-                '"advice":string}. Keep advice to one neutral sentence and recommend emergency care '.
-                'if symptoms sound severe.',
+                'symptoms suggest the most relevant medical specialty and an urgency level, and explain '.
+                'in plain, non-alarming language why the symptoms matter and what they could lead to if '.
+                'ignored. Reply ONLY with JSON: {"specialty":string,"urgency":"routine"|"soon"|"urgent",'.
+                '"advice":string,"why_serious":string,"can_lead_to":string}. Keep "advice" to one neutral '.
+                'sentence and recommend emergency care if symptoms sound severe. Keep "why_serious" and '.
+                '"can_lead_to" to one short sentence each, general and educational, never a definitive '.
+                'diagnosis or a claim about this specific person.',
                 PhiMinimizer::scrub($input),
                 true,
             ],
@@ -510,6 +513,8 @@ class AiService
             'specialty' => $data['specialty'] ?? null,
             'urgency' => in_array($data['urgency'] ?? null, ['routine', 'soon', 'urgent'], true) ? $data['urgency'] : 'routine',
             'advice' => (string) ($data['advice'] ?? 'This is informational only — please consult a clinician.'),
+            'why_serious' => (string) ($data['why_serious'] ?? ''),
+            'can_lead_to' => (string) ($data['can_lead_to'] ?? ''),
         ];
     }
 
@@ -783,13 +788,58 @@ class AiService
 
         $urgent = Str::contains($lower, ['chest pain', 'breath', 'bleeding', 'severe', 'faint', 'unconscious']);
         $soon = Str::contains($lower, ['pain', 'fever', 'vomit', 'days']);
+        $urgency = $urgent ? 'urgent' : ($soon ? 'soon' : 'routine');
+
+        // Why it matters + what untreated symptoms in this area can lead to.
+        // Educational only — deliberately non-diagnostic and specialty-scoped.
+        $context = [
+            'Dental' => [
+                'why' => 'Dental pain and gum problems often signal infection or decay that does not resolve on its own.',
+                'leads' => 'Untreated, it can progress to abscesses, tooth loss, and infection spreading to the jaw or bloodstream.',
+            ],
+            'Cardiology' => [
+                'why' => 'Chest pain, palpitations, or heart-related symptoms can reflect how well your heart is getting blood and oxygen.',
+                'leads' => 'If ignored, some causes can lead to a heart attack, dangerous rhythm problems, or lasting heart damage.',
+            ],
+            'Dermatology' => [
+                'why' => 'Skin changes, new or changing moles, and persistent rashes can be early signs of infection or skin disease.',
+                'leads' => 'Left unchecked, certain lesions can spread, scar, or in rare cases progress to skin cancer.',
+            ],
+            'Pediatrics' => [
+                'why' => 'Children can decline faster than adults, so fever or feeding changes deserve prompt attention.',
+                'leads' => 'Delays can allow dehydration or infection to worsen quickly and become harder to treat.',
+            ],
+            'Mental Health' => [
+                'why' => 'Ongoing anxiety, low mood, or panic affect daily functioning and tend to build over time.',
+                'leads' => 'Without support they can deepen, disrupt sleep, work, and relationships, and increase health risks.',
+            ],
+            'Orthopedics' => [
+                'why' => 'Bone, joint, and back symptoms can point to injury, inflammation, or nerve involvement.',
+                'leads' => 'Untreated, they can cause chronic pain, reduced mobility, or permanent joint damage.',
+            ],
+            'ENT' => [
+                'why' => 'Ear, nose, throat, and sinus symptoms can indicate infection that sits close to the airway and brain.',
+                'leads' => 'If untreated, infections can spread, affect hearing, or block breathing.',
+            ],
+            'General Medicine' => [
+                'why' => 'Persistent or worsening symptoms are your body signalling that something needs to be checked.',
+                'leads' => 'Waiting can let a treatable problem progress and become more serious or harder to manage.',
+            ],
+        ];
+        $info = $context[$specialty] ?? $context['General Medicine'];
+
+        $why = $urgent
+            ? 'These symptoms can be a sign of a serious problem that may worsen quickly. '.$info['why']
+            : $info['why'];
 
         return [
             'specialty' => $specialty,
-            'urgency' => $urgent ? 'urgent' : ($soon ? 'soon' : 'routine'),
+            'urgency' => $urgency,
             'advice' => $urgent
                 ? 'These symptoms may be serious — please seek emergency care if they worsen. This is informational only.'
                 : 'This is informational only and not a diagnosis. Please confirm with a clinician.',
+            'why_serious' => $why,
+            'can_lead_to' => $info['leads'],
         ];
     }
 
