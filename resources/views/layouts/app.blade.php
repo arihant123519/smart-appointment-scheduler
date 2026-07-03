@@ -102,6 +102,8 @@
     window.SAS_TOASTS = @json($sasToastPayload);
     window.SAS_TODAY_TOAST = @json($sasTodayToast);
     window.SAS_UNREAD = @json($sasUnread);
+    window.SAS_IS_FRONTDESK = @json($sasUser ? $sasUser->hasRole('front_desk') : false);
+    window.SAS_FEED_URL = @json($sasUser ? route('notifications.feed') : null);
   </script>
 
   <script src="{{ asset('assets/libs/global/global.min.js') }}"></script>
@@ -176,6 +178,42 @@
           localStorage.setItem(k, '1');
         }
       });
+    })();
+  </script>
+  <script>
+    // --- Real-time notification poller (front desk) --------------------------
+    // Front-desk staff get a live toast + bell update whenever anyone in their
+    // clinic changes an appointment's status. Reuses the same per-id localStorage
+    // keys as the on-load toasts so nothing double-fires.
+    (function () {
+      if (!window.SAS_IS_FRONTDESK || !window.SAS_FEED_URL) return;
+      const badge = document.getElementById('sasBellBadge');
+
+      function updateBadge(n) {
+        if (!badge) return;
+        if (n > 0) { badge.textContent = n > 9 ? '9+' : n; badge.style.display = ''; }
+        else { badge.style.display = 'none'; }
+      }
+
+      function poll() {
+        fetch(window.SAS_FEED_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (!data) return;
+            updateBadge(data.unread || 0);
+            (data.items || []).forEach(n => {
+              const k = 'sas_notif_' + n.id;
+              if (!localStorage.getItem(k)) {
+                if (window.sasToast) sasToast(n.title, n.body, 'info');
+                localStorage.setItem(k, '1');
+              }
+            });
+          })
+          .catch(() => { /* transient/offline — ignore */ });
+      }
+
+      setInterval(poll, 20000);   // every 20s
+      setTimeout(poll, 5000);     // and shortly after load
     })();
   </script>
   <script>

@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
 
     // Notifications center
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/feed', [NotificationController::class, 'feed'])->name('notifications.feed');
     Route::get('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
 

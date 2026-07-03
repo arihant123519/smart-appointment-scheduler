@@ -15,6 +15,11 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // Keep statuses honest: settle any past appointments that were never
+        // finalised before we read/aggregate them. (A scheduled command does the
+        // same clinic-wide; this makes the dashboard correct without a cron.)
+        Appointment::settleOverdue();
+
         // Patients get a focused self-service view.
         if ($user->hasRole('patient') && ! $user->hasAnyRole(['front_desk', 'provider', 'clinic_admin', 'system_admin', 'billing'])) {
             return $this->patientDashboard($user);
@@ -146,6 +151,38 @@ class DashboardController extends Controller
             ->where('start_at', '<', now())
             ->orderByDesc('start_at')->limit(10)->get();
 
-        return view('dashboard.patient', compact('user', 'upcoming', 'past'));
+        // --- Personal stats -------------------------------------------------
+        $all = $user->appointments();
+        $stats = [
+            'upcoming' => (clone $all)->upcoming()->count(),
+            'completed' => (clone $all)->where('status', Appointment::STATUS_COMPLETED)->count(),
+            'missed' => (clone $all)->where('status', Appointment::STATUS_NO_SHOW)->count(),
+            'total' => (clone $all)->count(),
+        ];
+        $finished = $stats['completed'] + $stats['missed'];
+        $attendanceRate = $finished > 0 ? round($stats['completed'] / $finished * 100) : 100;
+
+        // Visits over the last 6 months for a small trend chart.
+        $trendLabels = [];
+        $trendData = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = now()->startOfMonth()->subMonths($i);
+            $trendLabels[] = $month->format('M');
+            $trendData[] = (clone $all)
+                ->whereBetween('start_at', [$month, (clone $month)->endOfMonth()])
+                ->count();
+        }
+
+        // Today's appointments + today's missed → drive the popup.
+        $todays = $user->appointments()->with(['provider.user', 'service'])
+            ->whereDate('start_at', today())
+            ->whereNotIn('status', [Appointment::STATUS_CANCELLED])
+            ->orderBy('start_at')->get();
+        $todaysMissed = $todays->where('status', Appointment::STATUS_NO_SHOW);
+
+        return view('dashboard.patient', compact(
+            'user', 'upcoming', 'past', 'stats', 'attendanceRate',
+            'trendLabels', 'trendData', 'todays', 'todaysMissed'
+        ));
     }
 }

@@ -259,8 +259,13 @@
 
   {{-- ====================  TODAY / MISSED POPUP  ==================== --}}
   @if ($todaysAppointments->count() || $todaysMissed->count())
-    @php $alert = $todaysMissed->count() > 0; @endphp
-    <div class="modal fade" id="todayModal" tabindex="-1" aria-hidden="true" data-alert="{{ $alert ? '1' : '0' }}">
+    @php
+      $alert = $todaysMissed->count() > 0;
+      // Front desk always sees this popup on every dashboard load.
+      $alwaysShow = auth()->user()->hasRole('front_desk');
+    @endphp
+    <div class="modal fade" id="todayModal" tabindex="-1" aria-hidden="true"
+         data-alert="{{ $alert ? '1' : '0' }}" data-always="{{ $alwaysShow ? '1' : '0' }}">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius:1rem;overflow:hidden">
           <div class="modal-header border-0 text-white {{ $alert ? 'bg-danger' : '' }}"
@@ -458,13 +463,15 @@
           modalEl.removeAttribute('aria-hidden');
         }
       }
-      // Missed/non-completed appointments are urgent — always alert.
-      // The purely informational "today's appointments" shows once per day/session.
+      // Front desk always sees the popup. Otherwise: missed/non-completed
+      // appointments are urgent and always alert, while the purely informational
+      // "today's appointments" shows once per day/session.
+      const always = modalEl.dataset.always === '1';
       const isAlert = modalEl.dataset.alert === '1';
       const stamp = 'sas_today_modal_' + new Date().toISOString().slice(0, 10);
-      const shouldShow = isAlert || !sessionStorage.getItem(stamp);
+      const shouldShow = always || isAlert || !sessionStorage.getItem(stamp);
       if (shouldShow) {
-        if (!isAlert) sessionStorage.setItem(stamp, '1');
+        if (!always && !isAlert) sessionStorage.setItem(stamp, '1');
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', showModal);
         } else {

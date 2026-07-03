@@ -32,9 +32,9 @@
 
   <div class="alert alert-light border mt-4 mb-0 small">
     <strong>Demo logins</strong> (password: <code>password</code>)<br>
-    Admin: <code>admin@scheduler.test</code><br>
+    Admin: <code>archiaswal1234567890@gmail.com</code><br>
     Front Desk: <code>frontdesk@scheduler.test</code><br>
     Provider: <code>sarah.chen@scheduler.test</code><br>
-    Patient: <code>patient1@scheduler.test</code>
+    Patient: <code>anabhaiya123@gmail.com</code>
   </div>
 @endsection

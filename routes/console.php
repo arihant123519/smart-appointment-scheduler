@@ -16,6 +16,10 @@ Artisan::command('inspire', function () {
 Schedule::command('reminders:send')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('appointments:notify')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('announcements:dispatch')->everyFiveMinutes()->withoutOverlapping();
+// Auto-settle overdue statuses (booked/confirmed → no-show, checked-in →
+// completed) so nothing lingers as "Booked" after its time has passed. Runs
+// just before the missed-appointment follow-ups pick up the new no-shows.
+Schedule::command('appointments:settle')->everyTenMinutes()->withoutOverlapping();
 // "You missed your appointment" follow-ups for past, uncompleted appointments.
 Schedule::command('appointments:notify-missed')->everyFifteenMinutes()->withoutOverlapping();
 

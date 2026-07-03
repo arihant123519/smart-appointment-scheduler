@@ -59,6 +59,20 @@ class Appointment extends Model
         return $this->belongsTo(Provider::class);
     }
 
+    protected static function booted(): void
+    {
+        // When a signed-in user changes an appointment's status, alert the
+        // clinic's front desk in real time. Bulk/system updates (the settle
+        // command, seeders) use query-builder updates that never load a model,
+        // so they don't reach this event.
+        static::updated(function (self $appointment): void {
+            if ($appointment->wasChanged('status') && auth()->check()) {
+                app(\App\Services\ClinicDeskNotifier::class)
+                    ->appointmentStatusChanged($appointment, auth()->user());
+            }
+        });
+    }
+
     public function clinic(): BelongsTo
     {
         return $this->belongsTo(Clinic::class);
@@ -124,6 +138,33 @@ class Appointment extends Model
     {
         return $query->where('end_at', '<', now())
             ->whereIn('status', [self::STATUS_BOOKED, self::STATUS_CONFIRMED, self::STATUS_NO_SHOW]);
+    }
+
+    /**
+     * Auto-settle the status of past appointments that were never finalised:
+     *   • booked / confirmed (patient never arrived)  → no_show
+     *   • checked_in (arrived but not closed out)      → completed
+     * Completed, cancelled and already-no_show rows are left untouched.
+     *
+     * Pass a base query to limit the scope (e.g. one patient or one clinic);
+     * otherwise every clinic's overdue appointments are settled.
+     *
+     * @return array{missed:int, completed:int}
+     */
+    public static function settleOverdue(?\Illuminate\Database\Eloquent\Builder $base = null): array
+    {
+        $base ??= static::query();
+        $now = now();
+
+        $missed = (clone $base)->where('end_at', '<', $now)
+            ->whereIn('status', [self::STATUS_BOOKED, self::STATUS_CONFIRMED])
+            ->update(['status' => self::STATUS_NO_SHOW]);
+
+        $completed = (clone $base)->where('end_at', '<', $now)
+            ->where('status', self::STATUS_CHECKED_IN)
+            ->update(['status' => self::STATUS_COMPLETED]);
+
+        return ['missed' => $missed, 'completed' => $completed];
     }
 
     public function getStatusLabelAttribute(): string

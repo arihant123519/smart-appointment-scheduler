@@ -24,9 +24,8 @@
     <div class="dropdown">
       <a href="#" class="position-relative d-flex align-items-center text-decoration-none" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
         <i class="fi fi-rr-bell fs-5 text-dark"></i>
-        @if ($bellUnread)
-          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem">{{ $bellUnread > 9 ? '9+' : $bellUnread }}</span>
-        @endif
+        <span id="sasBellBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              style="font-size:.6rem; {{ $bellUnread ? '' : 'display:none' }}">{{ $bellUnread > 9 ? '9+' : $bellUnread }}</span>
       </a>
       <div class="dropdown-menu dropdown-menu-end p-0 mt-2" style="width:330px">
         <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">

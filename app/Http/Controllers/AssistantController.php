@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\AI\AiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Global in-app AI assistant (floating widget). Turns a natural-language
@@ -94,6 +95,14 @@ class AssistantController extends Controller
     {
         $data = $request->validate(['text' => ['required', 'string', 'max:300']]);
 
+        // Self-schedule shortcut — "what appointments do I have today",
+        // "aaj meri konsi appointment hai", "my upcoming visits". These refer to
+        // the CURRENT user, so answer directly: name extraction would otherwise
+        // fail on "my/me/meri" and ask "whose record?".
+        if ($self = $this->selfAppointments($data['text'])) {
+            return response()->json($self + ['auto' => false]);
+        }
+
         $permitted = $this->permitted();
         $slim = array_map(fn ($d) => [
             'key' => $d['key'], 'label' => $d['label'], 'keywords' => $d['keywords'],
@@ -129,6 +138,106 @@ class AssistantController extends Controller
             'label' => $label,
             'auto' => (bool) $url,
         ]);
+    }
+
+    /**
+     * Detect a question about the CURRENT user's own appointments ("my", "me",
+     * "meri/mera/mujhe/apni") and answer it directly. Returns null when the text
+     * isn't a self-schedule question, so normal handling continues.
+     *
+     * @return array{reply:string, url:?string, label:?string}|null
+     */
+    private function selfAppointments(string $text): ?array
+    {
+        $lower = mb_strtolower($text);
+
+        // A booking/navigation verb — let the normal flow handle those.
+        if (Str::contains($lower, ['book ', 'create ', 'new appointment'])) {
+            return null;
+        }
+
+        // Strip filler phrases where "me" means "display", not ownership
+        // ("show me…", "tell me…") so they aren't read as self-reference.
+        $cleaned = preg_replace('/\b(show|tell|give|let|find|get)\s+me\b/u', ' ', $lower);
+
+        // Someone else is referenced (honorific/role or a possessive name) → not
+        // a self-question; let the name-based query handle it.
+        $mentionsOther = Str::contains($cleaned, ['dr ', 'dr.', 'doctor', 'provider', 'patient', 'client'])
+            || (bool) preg_match("/\b[a-z]+'s\b/u", $cleaned);
+
+        $mentionsAppt = Str::contains($lower, [
+            'appointment', 'appt', 'visit', 'booking', 'schedule',
+        ]);
+        // Strong ownership signals (English + romanized Hindi/Urdu).
+        $selfStrong = (bool) preg_match('/\b(my|mine)\b/u', $cleaned)
+            || Str::contains($cleaned, [
+                'meri', 'mera', 'mere', 'mujhe', 'mujhy', 'apni', 'apna', 'apne', 'hamari', 'humari', 'hamare',
+            ]);
+        // Weak signals ("me", "i") only count when no one else is named.
+        $selfWeak = (bool) preg_match('/\b(me|i)\b/u', $cleaned) && ! $mentionsOther;
+
+        if (! $mentionsAppt || ! ($selfStrong || $selfWeak)) {
+            return null;
+        }
+
+        $range = match (true) {
+            Str::contains($lower, ['upcoming', 'future', 'next', 'agli', 'aane wali', 'aanewali']) => 'upcoming',
+            Str::contains($lower, ['past', 'previous', 'history', 'pichli', 'pichhli']) => 'past',
+            Str::contains($lower, ['today', 'aaj']) => 'today',
+            default => 'upcoming',
+        };
+
+        return $this->mySchedule($range);
+    }
+
+    /**
+     * Build the current user's own appointment answer (provider or patient).
+     *
+     * @return array{reply:string, url:?string, label:?string}
+     */
+    private function mySchedule(string $range): array
+    {
+        $user = auth()->user();
+
+        // Provider — their own schedule within the clinic.
+        if ($user->provider) {
+            $base = $this->applyRange(
+                Appointment::forCurrentClinic()->where('provider_id', $user->provider->id), $range
+            );
+            $count = (clone $base)->count();
+            $next = $range === 'past' ? null
+                : (clone $base)->with('patient')->orderBy('start_at')->first();
+
+            $reply = "You have {$count} ".$this->rangeWord($range).' appointment(s).';
+            if ($next && $next->patient) {
+                $reply .= " Next: {$next->patient->name} at ".$next->start_at->format('M j, g:i A').'.';
+            }
+
+            $params = ['provider_id' => $user->provider->id];
+            if ($range === 'today') {
+                $params['date'] = today()->toDateString();
+            }
+
+            return ['reply' => $reply, 'url' => route('appointments.index', $params), 'label' => 'my appointments'];
+        }
+
+        // Patient — their own appointments (linked to the personal dashboard).
+        if ($user->hasRole('patient')) {
+            $count = $this->applyRange($user->appointments(), $range)->count();
+
+            return [
+                'reply' => "You have {$count} ".$this->rangeWord($range).' appointment(s).',
+                'url' => route('dashboard'),
+                'label' => 'my appointments',
+            ];
+        }
+
+        // Staff with no personal calendar.
+        return [
+            'reply' => "You don't have a personal appointment calendar. Try asking about a specific patient or provider by name — e.g. “Dr. Chen's appointments today”.",
+            'url' => null,
+            'label' => null,
+        ];
     }
 
     /**
