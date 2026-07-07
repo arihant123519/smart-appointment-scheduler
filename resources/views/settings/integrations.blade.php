@@ -79,7 +79,7 @@
       </div>
 
       {{-- ============================ WHATSAPP (GUPSHUP) ============================ --}}
-      <div class="card mb-3" style="height: auto;">
+      <div class="card mb-3" id="wa-templates" style="height: auto;">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h6 class="mb-0"><i class="fi fi-brands-whatsapp me-1"></i> WhatsApp <span class="text-muted small">via Gupshup</span></h6>
           <span class="badge bg-{{ (($values['messaging.whatsapp_driver'] ?? 'log') !== 'log') ? 'success' : 'secondary' }}">{{ strtoupper($values['messaging.whatsapp_driver'] ?? 'log') }}</span>
@@ -110,7 +110,26 @@
                 <label class="form-label">Gupshup API key</label>
                 <input type="password" name="api_key" class="form-control" autocomplete="new-password" placeholder="{{ $secretSet['whatsapp.gupshup_api_key'] ? '•••••••• (saved)' : 'Enter Gupshup API key' }}">
               </div>
+              <div class="col-md-6">
+                <label class="form-label">Inbound webhook secret</label>
+                <input type="password" name="webhook_secret" class="form-control" autocomplete="new-password" placeholder="{{ $secretSet['whatsapp.gupshup_webhook_secret'] ? '•••••••• (saved)' : 'Enter a random secret string' }}">
+                <div class="form-text">Checked against <code>?token=</code> on every inbound Gupshup request — only Gupshup should know this value.</div>
+              </div>
             </div>
+
+            @if ($webhookUrl)
+              <div class="alert alert-success d-flex align-items-center mt-3 mb-0" role="alert">
+                <i class="fi fi-rr-webhook me-2"></i>
+                <div>
+                  Paste this as the <strong>inbound URL</strong> in your Gupshup app's dashboard so patient replies (and conversation flows) reach this app:
+                  <code class="d-block mt-1 user-select-all">{{ $webhookUrl }}</code>
+                </div>
+              </div>
+            @else
+              <div class="alert alert-secondary mt-3 mb-0" role="alert">
+                <i class="fi fi-rr-info me-2"></i> Save an inbound webhook secret above to get a ready-to-paste Gupshup inbound URL.
+              </div>
+            @endif
 
             <hr class="my-3">
             <div class="d-flex justify-content-between align-items-center mb-2">

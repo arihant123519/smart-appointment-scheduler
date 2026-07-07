@@ -58,7 +58,7 @@ class WaitlistService
             $context = WhatsappTemplate::contextFromAppointment($appointment);
             $context['patient_name'] = (string) ($candidate->patient->name ?? '');
             $params = WhatsappTemplate::resolveParams($section['variables'], $context);
-            $this->messages->sendWhatsappTemplate($candidate->patient, $section['template_id'], $params);
+            $this->messages->sendWhatsappTemplate($candidate->patient, $section['template_id'], $params, null, $appointment, 'waitlist', 'waitlist');
         } else {
             $this->messages->send(
                 $candidate->patient,
@@ -73,6 +73,9 @@ class WaitlistService
                     'Log in and book it here: '.route('booking.create'),
                 ]),
                 $channel,
+                $appointment,
+                'waitlist',
+                'waitlist',
             );
         }
 

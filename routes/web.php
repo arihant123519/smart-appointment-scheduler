@@ -46,6 +46,10 @@ Route::get('r/{token}/confirm', [ReminderActionController::class, 'confirm'])->n
 Route::get('r/{token}/cancel', [ReminderActionController::class, 'cancel'])->name('reminder.cancel');
 Route::get('r/{token}/reschedule', [ReminderActionController::class, 'reschedule'])->name('reminder.reschedule');
 
+// --- Inbound Gupshup webhook (public, shared-secret authenticated) ---------
+Route::post('webhooks/gupshup', [\App\Http\Controllers\Webhooks\GupshupWebhookController::class, 'handle'])
+    ->name('webhooks.gupshup');
+
 // --- Authenticated ---------------------------------------------------------
 Route::middleware('auth')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -168,6 +172,18 @@ Route::middleware('auth')->group(function () {
         Route::get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
         Route::put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
         Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    });
+
+    // WhatsApp conversation flows (visual builder)
+    Route::middleware('can:manage flows')->group(function () {
+        Route::get('flows', [\App\Http\Controllers\WhatsappFlowController::class, 'index'])->name('flows.index');
+        Route::get('flows/create', [\App\Http\Controllers\WhatsappFlowController::class, 'create'])->name('flows.create');
+        Route::post('flows', [\App\Http\Controllers\WhatsappFlowController::class, 'store'])->name('flows.store');
+        Route::get('flows/{flow}/edit', [\App\Http\Controllers\WhatsappFlowController::class, 'edit'])->name('flows.edit');
+        Route::put('flows/{flow}', [\App\Http\Controllers\WhatsappFlowController::class, 'update'])->name('flows.update');
+        Route::patch('flows/{flow}/activate', [\App\Http\Controllers\WhatsappFlowController::class, 'activate'])->name('flows.activate');
+        Route::delete('flows/{flow}', [\App\Http\Controllers\WhatsappFlowController::class, 'destroy'])->name('flows.destroy');
+        Route::get('flows/{flow}/conversations', [\App\Http\Controllers\WhatsappFlowController::class, 'conversations'])->name('flows.conversations');
     });
 
     // Users

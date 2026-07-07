@@ -28,3 +28,6 @@ Schedule::command('appointments:notify-today')->dailyAt('07:00');
 
 // Continuous learning: re-score upcoming appointments from the latest history.
 Schedule::command('ai:recompute-no-show')->dailyAt('02:00');
+
+// Time out WhatsApp conversation flows that have gone quiet, and alert the front desk.
+Schedule::command('flows:sweep-timeouts')->everyFifteenMinutes()->withoutOverlapping();

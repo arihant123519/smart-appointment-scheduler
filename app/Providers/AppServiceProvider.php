@@ -79,6 +79,7 @@ class AppServiceProvider extends ServiceProvider
             // now managed as JSON in the settings store, not via config.
             'services.whatsapp.gupshup_template_id' => $s('whatsapp.gupshup_template_id', config('services.whatsapp.gupshup_template_id')),
             'services.whatsapp.gupshup_namespace' => $s('whatsapp.gupshup_namespace', config('services.whatsapp.gupshup_namespace')),
+            'services.whatsapp.gupshup_webhook_secret' => $s('whatsapp.gupshup_webhook_secret', config('services.whatsapp.gupshup_webhook_secret')),
         ]);
     }
 }

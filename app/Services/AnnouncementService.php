@@ -77,9 +77,9 @@ class AnnouncementService
                         'patient_name' => (string) ($user->name ?? ''),
                         'clinic_name' => (string) (optional($user->clinic)->name ?? ''),
                     ]);
-                    $this->messages->sendWhatsappTemplate($user, $templateId, $params);
+                    $this->messages->sendWhatsappTemplate($user, $templateId, $params, null, null, 'announcement', 'broadcast');
                 } else {
-                    $this->messages->send($user, $announcement->title, $announcement->body, $channel);
+                    $this->messages->send($user, $announcement->title, $announcement->body, $channel, null, 'announcement', 'broadcast');
                 }
             }
         }

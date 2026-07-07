@@ -61,6 +61,42 @@
       </div>
     </div>
   </div>
+
+  {{-- Conversion engine: WhatsApp flow performance + appointment funnel --}}
+  <div class="row g-3 mt-1">
+    <div class="col-12"><h6 class="text-muted mb-0 mt-2">🔁 Conversion engine (30d)</h6></div>
+    <div class="col-md-2 col-6"><div class="card"><div class="card-body text-center">
+      <div class="text-muted small">Flows started</div>
+      <div class="fs-3 fw-bold">{{ $flow['started'] }}</div>
+    </div></div></div>
+    <div class="col-md-2 col-6"><div class="card"><div class="card-body text-center">
+      <div class="text-muted small">Completed</div>
+      <div class="fs-3 fw-bold text-success">{{ $flow['completed'] }}</div>
+    </div></div></div>
+    <div class="col-md-2 col-6"><div class="card"><div class="card-body text-center">
+      <div class="text-muted small">Timed out</div>
+      <div class="fs-3 fw-bold text-warning">{{ $flow['timed_out'] }}</div>
+    </div></div></div>
+    <div class="col-md-2 col-6"><div class="card"><div class="card-body text-center">
+      <div class="text-muted small">Escalated to staff</div>
+      <div class="fs-3 fw-bold text-danger">{{ $flow['escalated'] }}</div>
+    </div></div></div>
+    <div class="col-md-2 col-6"><div class="card"><div class="card-body text-center">
+      <div class="text-muted small">Appointments rescued</div>
+      <div class="fs-3 fw-bold text-success">{{ $flow['rescued'] }}</div>
+    </div></div></div>
+    <div class="col-md-2 col-6"><div class="card"><div class="card-body text-center">
+      <div class="text-muted small">Lost anyway</div>
+      <div class="fs-3 fw-bold text-danger">{{ $flow['lost'] }}</div>
+    </div></div></div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Appointment funnel (30d) — booked → completed vs. lost</h6></div>
+        <div class="card-body"><div id="funnelChart"></div></div>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @push('scripts')
@@ -96,6 +132,16 @@
       colors: ['#5955D1'],
       plotOptions: { bar: { borderRadius: 6, columnWidth: '45%' } },
       dataLabels: { enabled: false },
+    }).render();
+
+    new ApexCharts(document.querySelector('#funnelChart'), {
+      chart: { type: 'bar', height: 260, toolbar: { show: false }, fontFamily: 'Instrument Sans' },
+      series: [{ name: 'Appointments', data: @json(array_values($funnel)) }],
+      xaxis: { categories: @json(array_keys($funnel)) },
+      plotOptions: { bar: { horizontal: true, borderRadius: 6, distributed: true } },
+      legend: { show: false },
+      colors: ['#5955D1', '#0EA5E9', '#8B5CF6', '#22C55E', '#94A3B8', '#EF4444'],
+      dataLabels: { enabled: true },
     }).render();
   </script>
 @endpush

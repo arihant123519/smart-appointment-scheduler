@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Provider;
+use App\Models\WhatsappConversation;
 use App\Services\AI\AiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,57 @@ class ReportController extends Controller
             'byProvider' => $m['by_provider'],
             'byChannel' => $m['by_channel'],
             'utilization' => $m['utilization'],
+            'funnel' => $this->funnel(),
+            'flow' => $this->flowMetrics(),
         ]);
+    }
+
+    /** Appointment status funnel over the last 30 days (booked → completed vs. lost). */
+    private function funnel(): array
+    {
+        $window = now()->subDays(30);
+
+        $counts = Appointment::where('start_at', '>=', $window)
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $order = [
+            Appointment::STATUS_BOOKED, Appointment::STATUS_CONFIRMED, Appointment::STATUS_CHECKED_IN,
+            Appointment::STATUS_COMPLETED, Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW,
+        ];
+
+        return collect($order)->mapWithKeys(fn ($status) => [
+            (Appointment::STATUSES[$status] ?? $status) => (int) ($counts[$status] ?? 0),
+        ])->all();
+    }
+
+    /**
+     * WhatsApp conversation flow performance over the last 30 days — the
+     * headline metric is `rescued`: conversations whose linked appointment
+     * survived (isn't cancelled/no-show), i.e. the flow likely kept the visit.
+     */
+    private function flowMetrics(): array
+    {
+        $window = now()->subDays(30);
+        $base = WhatsappConversation::where('started_at', '>=', $window);
+
+        $started = (clone $base)->count();
+        $completed = (clone $base)->where('status', 'completed')->count();
+        $timedOut = (clone $base)->where('status', 'timed_out')->count();
+        $escalated = (clone $base)->where('status', 'escalated')->count();
+        $rescued = (clone $base)->whereHas('appointment', fn ($q) => $q->whereNotIn('status', [
+            Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW,
+        ]))->count();
+
+        return [
+            'started' => $started,
+            'completed' => $completed,
+            'timed_out' => $timedOut,
+            'escalated' => $escalated,
+            'rescued' => $rescued,
+            'lost' => max(0, $started - $rescued),
+        ];
     }
 
     /**

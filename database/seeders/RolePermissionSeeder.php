@@ -32,6 +32,7 @@ class RolePermissionSeeder extends Seeder
             'manage settings',
             'view audit logs',
             'use ai',
+            'manage flows',
         ];
 
         foreach ($permissions as $permission) {
@@ -57,7 +58,7 @@ class RolePermissionSeeder extends Seeder
                 'view dashboard', 'manage appointments', 'view appointments', 'manage calendar',
                 'manage patients', 'manage providers', 'manage services', 'manage resources',
                 'manage waitlist', 'manage reminders', 'view billing', 'manage billing',
-                'view reports', 'manage users', 'manage settings', 'view audit logs', 'use ai',
+                'view reports', 'manage users', 'manage settings', 'view audit logs', 'use ai', 'manage flows',
             ],
             'system_admin' => $permissions, // everything
         ];

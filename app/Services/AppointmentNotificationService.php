@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\AppointmentNotification;
+use App\Models\WhatsappFlow;
+use App\Services\Flows\FlowEngine;
 use App\Services\Messaging\MessageService;
 use App\Support\AppointmentNotifications;
 use App\Support\WhatsappTemplate;
@@ -140,6 +142,9 @@ class AppointmentNotificationService
                 'Appointment '.$appointment->status_label,
                 $this->statusEmailBody($appointment),
                 'email',
+                $appointment,
+                'appointment_notification',
+                'status_update',
             );
         }
 
@@ -152,7 +157,10 @@ class AppointmentNotificationService
                     $section['variables'],
                     WhatsappTemplate::contextFromAppointment($appointment),
                 );
-                $result['whatsapp'] = $this->messages->sendWhatsappTemplate($patient, $section['template_id'], $params);
+                $result['whatsapp'] = $this->messages->sendWhatsappTemplate(
+                    $patient, $section['template_id'], $params, null,
+                    $appointment, 'appointment_notification', 'status_update',
+                );
             }
         }
 
@@ -163,9 +171,14 @@ class AppointmentNotificationService
      * Send the immediate email + WhatsApp message when an appointment is
      * rescheduled. Uses the same enable/channel toggles as status changes.
      *
+     * $viaFlow must be true when this is called FROM a running WhatsApp flow's
+     * own "reschedule" action (App\Services\Flows\FlowEngine) — it skips
+     * re-starting a flow, which would otherwise loop forever (the flow
+     * rescheduling the appointment would immediately trigger itself again).
+     *
      * @return array{email: bool, whatsapp: bool}
      */
-    public function notifyRescheduled(Appointment $appointment): array
+    public function notifyRescheduled(Appointment $appointment, bool $viaFlow = false): array
     {
         $result = ['email' => false, 'whatsapp' => false];
 
@@ -186,18 +199,34 @@ class AppointmentNotificationService
                 'Appointment rescheduled',
                 $this->rescheduleEmailBody($appointment),
                 'email',
+                $appointment,
+                'appointment_notification',
+                'reschedule',
             );
         }
 
         if ($cfg['whatsapp']) {
-            // Reschedule has its own approved template (do not fall back).
-            $section = WhatsappTemplate::forEvent('reschedule', false);
-            if ($section && $section['template_id']) {
-                $params = WhatsappTemplate::resolveParams(
-                    $section['variables'],
-                    WhatsappTemplate::contextFromAppointment($appointment),
-                );
-                $result['whatsapp'] = $this->messages->sendWhatsappTemplate($patient, $section['template_id'], $params);
+            // If a WhatsApp conversation flow is active for "reschedule", let it
+            // drive the interactive back-and-forth (ask if the new time works,
+            // capture a preferred time otherwise, etc.) instead of the static
+            // one-way template. Falls back to the static template exactly as
+            // before when no flow is configured — fully additive.
+            $flow = $viaFlow ? null : WhatsappFlow::activeFor('reschedule', $appointment->clinic_id);
+            if ($flow) {
+                $result['whatsapp'] = (bool) app(FlowEngine::class)->start($flow, $appointment);
+            } else {
+                // Reschedule has its own approved template (do not fall back).
+                $section = WhatsappTemplate::forEvent('reschedule', false);
+                if ($section && $section['template_id']) {
+                    $params = WhatsappTemplate::resolveParams(
+                        $section['variables'],
+                        WhatsappTemplate::contextFromAppointment($appointment),
+                    );
+                    $result['whatsapp'] = $this->messages->sendWhatsappTemplate(
+                        $patient, $section['template_id'], $params, null,
+                        $appointment, 'appointment_notification', 'reschedule',
+                    );
+                }
             }
         }
 
@@ -225,6 +254,9 @@ class AppointmentNotificationService
             'Missed appointment',
             $this->missedEmailBody($appointment),
             'email',
+            $appointment,
+            'appointment_notification',
+            'missed',
         );
 
         // WhatsApp uses the approved "missed" template (no fallback).
@@ -234,7 +266,10 @@ class AppointmentNotificationService
                 $section['variables'],
                 WhatsappTemplate::contextFromAppointment($appointment),
             );
-            $result['whatsapp'] = $this->messages->sendWhatsappTemplate($patient, $section['template_id'], $params);
+            $result['whatsapp'] = $this->messages->sendWhatsappTemplate(
+                $patient, $section['template_id'], $params, null,
+                $appointment, 'appointment_notification', 'missed',
+            );
         }
 
         return $result;
@@ -272,6 +307,9 @@ class AppointmentNotificationService
                         'Appointment reminder',
                         $this->reminderEmailBody($appointment),
                         'email',
+                        $appointment,
+                        'appointment_notification',
+                        'appointment',
                     );
 
                 $notification->update(['status' => $ok ? 'sent' : 'failed', 'sent_at' => now()]);
@@ -293,7 +331,10 @@ class AppointmentNotificationService
             WhatsappTemplate::contextFromAppointment($appointment),
         );
 
-        return $this->messages->sendWhatsappTemplate($appointment->patient, $section['template_id'], $params);
+        return $this->messages->sendWhatsappTemplate(
+            $appointment->patient, $section['template_id'], $params, null,
+            $appointment, 'appointment_notification', 'appointment',
+        );
     }
 
     private function statusEmailBody(Appointment $appointment): string

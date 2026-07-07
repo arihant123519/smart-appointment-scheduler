@@ -40,6 +40,11 @@
           <i class="fi fi-rr-megaphone"></i> Broadcast
         </a>
       @endcan
+      @can('manage flows')
+        <a href="{{ route('flows.index') }}" class="sas-nav__link {{ $r('flows.*') }}">
+          <i class="fi fi-brands-whatsapp"></i> WhatsApp Flows
+        </a>
+      @endcan
     @endcanany
 
     @canany(['manage patients', 'manage providers', 'manage services'])

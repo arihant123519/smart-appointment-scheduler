@@ -20,7 +20,7 @@ use Illuminate\View\View;
 class IntegrationSettingsController extends Controller
 {
     /** Secret keys are encrypted and never echoed back to the form. */
-    protected array $secretKeys = ['mail.password', 'whatsapp.gupshup_api_key'];
+    protected array $secretKeys = ['mail.password', 'whatsapp.gupshup_api_key', 'whatsapp.gupshup_webhook_secret'];
 
     public function edit(): View
     {
@@ -47,7 +47,13 @@ class IntegrationSettingsController extends Controller
         $events = WhatsappTemplate::events();
         $tokens = WhatsappTemplate::tokens();
 
-        return view('settings.integrations', compact('values', 'secretSet', 'sections', 'events', 'tokens'));
+        // Ready-to-paste inbound URL for Gupshup's dashboard. The token is only
+        // shown when a webhook secret has actually been saved.
+        $webhookUrl = $secretSet['whatsapp.gupshup_webhook_secret']
+            ? url('/webhooks/gupshup').'?token='.config('services.whatsapp.gupshup_webhook_secret')
+            : null;
+
+        return view('settings.integrations', compact('values', 'secretSet', 'sections', 'events', 'tokens', 'webhookUrl'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -91,6 +97,7 @@ class IntegrationSettingsController extends Controller
             'source' => ['nullable', 'string', 'max:40'],
             'app_name' => ['nullable', 'string', 'max:120'],
             'api_key' => ['nullable', 'string', 'max:255'],
+            'webhook_secret' => ['nullable', 'string', 'max:255'],
             'sections' => ['nullable', 'array'],
             'sections.*.event' => ['nullable', Rule::in(WhatsappTemplate::eventKeys())],
             'sections.*.label' => ['nullable', 'string', 'max:120'],
@@ -105,6 +112,7 @@ class IntegrationSettingsController extends Controller
         Setting::set('whatsapp.gupshup_source', $request->input('source'), 'whatsapp');
         Setting::set('whatsapp.gupshup_app_name', $request->input('app_name'), 'whatsapp');
         $this->setSecret('whatsapp.gupshup_api_key', $request->input('api_key'), 'whatsapp');
+        $this->setSecret('whatsapp.gupshup_webhook_secret', $request->input('webhook_secret'), 'whatsapp');
 
         // Dynamic per-event template sections (add / edit / remove).
         WhatsappTemplate::save($request->input('sections', []));

@@ -138,6 +138,16 @@ class AiService
         return $this->run('smart_reminder', fn () => $this->ruleReminder($context), json_encode($context));
     }
 
+    /**
+     * Interpret a free-form reply (e.g. "next Tuesday afternoon", "10th July
+     * around 3", "day after tomorrow morning") as an absolute date/time.
+     * Returns null when no date/time could be made out of the text at all.
+     */
+    public function parseDateTime(string $text): ?string
+    {
+        return $this->run('parse_datetime', fn () => $this->ruleParseDateTime($text), $text);
+    }
+
     /** Answer an admin's natural-language question over a supplied metrics array. */
     public function answerReportQuery(string $question, array $data): string
     {
@@ -370,6 +380,14 @@ class AiService
                 $input, // metrics only, no PHI
                 false,
             ],
+            'parse_datetime' => [
+                "Today is {$today}. A patient was asked what date and time they'd prefer for their ".
+                "rescheduled appointment, and replied in their own words. Resolve their reply to a single ".
+                'absolute date and time. Reply ONLY with JSON: {"datetime":"YYYY-MM-DD HH:MM"|null}. Use '.
+                '24-hour time. If the reply names no nameable date/time at all, reply {"datetime":null}.',
+                $input, // the reply IS the date/time to resolve — PHI-scrubbing would corrupt the numbers
+                true,
+            ],
             'feedback_themes' => [
                 'Analyze the patient feedback comments. Identify up to 5 recurring themes. Reply ONLY '.
                 'with JSON: {"summary":string,"themes":[string,...]}. Summary is one sentence.',
@@ -437,6 +455,7 @@ class AiService
             'symptom_routing' => $this->parseSymptomResponse($raw),
             'feedback_themes' => $this->parseThemesResponse($raw),
             'assistant_command' => $this->parseCommandResponse($raw),
+            'parse_datetime' => $this->parseDateTimeResponse($raw),
             // intake_summary, smart_reminder, report_query => plain text
             default => trim($raw),
         };
@@ -551,6 +570,21 @@ class AiService
             ],
             'reply' => (string) ($data['reply'] ?? 'On it…'),
         ];
+    }
+
+    private function parseDateTimeResponse(string $raw): ?string
+    {
+        $data = $this->decodeJson($raw);
+        $value = $data['datetime'] ?? null;
+        if (! $value) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->toDateTimeString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function normalizeDate(?string $date): ?string
@@ -852,6 +886,16 @@ class AiService
 
         return "Hi {$name}, this is a friendly reminder for your {$service} with {$provider} on {$when}. ".
             'Please reply to confirm, reschedule, or cancel. We look forward to seeing you!';
+    }
+
+    /** Deterministic fallback — Carbon already understands a lot of plain phrasing without AI. */
+    private function ruleParseDateTime(string $text): ?string
+    {
+        try {
+            return Carbon::parse($text)->toDateTimeString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function ruleReportAnswer(string $question, array $data): string

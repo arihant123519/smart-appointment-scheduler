@@ -71,6 +71,11 @@ return [
         // env value seeds the default "Appointment reminder" section.
         'gupshup_template_id' => env('GUPSHUP_TEMPLATE_ID'),
         'gupshup_namespace' => env('GUPSHUP_NAMESPACE'),
+
+        // Shared secret checked against `?token=` on the inbound Gupshup
+        // webhook (routes/web.php: webhooks.gupshup) — Gupshup does not sign
+        // its webhook payloads, so this is the only auth on that public route.
+        'gupshup_webhook_secret' => env('GUPSHUP_WEBHOOK_SECRET'),
     ],
 
     'telehealth' => [

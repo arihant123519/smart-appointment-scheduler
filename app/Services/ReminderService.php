@@ -87,7 +87,7 @@ class ReminderService
                 // lead-time / status notifications) is handled separately by the
                 // Appointment Notifications system (`appointments:notify`).
                 $body = $this->compose($reminder);
-                $ok = $this->messages->send($appointment->patient, $subject, $body, 'email');
+                $ok = $this->messages->send($appointment->patient, $subject, $body, 'email', $appointment, 'reminder', $reminder->type);
 
                 $reminder->update([
                     'body' => $body,

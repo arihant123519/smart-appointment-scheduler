@@ -41,6 +41,9 @@ class WhatsappTemplate
         'missed' => 'Missed appointment',
         'waitlist' => 'Waitlist — slot opened',
         'broadcast' => 'Broadcast / announcement',
+        'timing_check' => 'Timing check (Yes/No)',
+        'reschedule_yes_confirm' => 'Reschedule confirmed (Yes)',
+        'reschedule_no_confirm' => 'Reschedule — new time requested (No)',
     ];
 
     /**
@@ -395,6 +398,34 @@ class WhatsappTemplate
                 'namespace' => null,
                 'body' => '{{1}}',
                 'variables' => ['message'],
+            ],
+            [
+                'event' => 'timing_check',
+                'label' => 'Timing check (Yes/No)',
+                'template_id' => null,
+                'namespace' => null,
+                // Quick-Reply-Buttons template in Gupshup — button labels must
+                // be exactly "Yes" / "No" so ReplyClassifier::classifyYesNo()
+                // recognizes the tap without any extra mapping. No {{n}}
+                // placeholders — matches the approved template's fixed body.
+                'body' => 'Are you comfortable with this timing?',
+                'variables' => [],
+            ],
+            [
+                'event' => 'reschedule_yes_confirm',
+                'label' => 'Reschedule confirmed (Yes)',
+                'template_id' => null,
+                'namespace' => null,
+                'body' => 'Thank you! Your appointment timing is confirmed. We look forward to seeing you.',
+                'variables' => [],
+            ],
+            [
+                'event' => 'reschedule_no_confirm',
+                'label' => 'Reschedule — new time requested (No)',
+                'template_id' => null,
+                'namespace' => null,
+                'body' => 'What date and time would work best for you?',
+                'variables' => [],
             ],
         ];
     }

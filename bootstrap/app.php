@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
         ]);
+
+        // Gupshup posts to this webhook as a server-to-server call with no
+        // Laravel session/CSRF token — it's authenticated by a shared-secret
+        // `?token=` query param instead (see GupshupWebhookController).
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/gupshup',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

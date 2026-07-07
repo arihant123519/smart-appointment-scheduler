@@ -45,4 +45,41 @@ class ClinicDeskNotifier
             $recipient->notify($notification);
         }
     }
+
+    /**
+     * Notify a clinic's front desk + clinic admins that a WhatsApp conversation
+     * flow needs a human — either it hit an unresolvable step (e.g. an
+     * unparsable requested time) or it went stale waiting for a reply. There's
+     * no "actor" to exclude here; this is a system-triggered alert.
+     */
+    public function flowEscalated(Appointment $appointment, string $reason): void
+    {
+        if (! $appointment->clinic_id) {
+            return;
+        }
+
+        $recipients = User::role(['front_desk', 'clinic_admin'])
+            ->where('clinic_id', $appointment->clinic_id)
+            ->get();
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        $appointment->loadMissing(['patient', 'provider.user']);
+        $patient = $appointment->patient->name ?? 'A patient';
+        $when = $appointment->start_at?->format('M j, g:i A');
+
+        $notification = new GenericNotification(
+            title: 'WhatsApp conversation needs attention',
+            body: "{$patient}'s appointment".($when ? " on {$when}" : '')." — {$reason}.",
+            url: route('appointments.show', $appointment),
+            icon: 'fi-rr-comment-alt',
+            key: 'flow_escalated_'.$appointment->id.'_'.now()->timestamp,
+        );
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify($notification);
+        }
+    }
 }
