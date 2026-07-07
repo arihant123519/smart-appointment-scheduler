@@ -21,14 +21,20 @@ use Illuminate\Support\Facades\Log;
  * Payload shapes below follow Gupshup's general Messages/Events webhook
  * format; the exact field paths should be verified against a live Gupshup
  * sandbox/dashboard if delivery ever looks wrong.
+ *
+ * The shared secret may arrive either as a `?token=` query parameter or as an
+ * `X-Webhook-Token` header — Gupshup's dashboard rejects callback URLs that
+ * contain a query string ("Invalid URL Passed"), so the header is the only
+ * option when registering the webhook through their UI.
  */
 class GupshupWebhookController extends Controller
 {
     public function handle(Request $request): JsonResponse
     {
         $secret = (string) config('services.whatsapp.gupshup_webhook_secret');
+        $provided = (string) ($request->header('X-Webhook-Token') ?? $request->query('token', ''));
 
-        if ($secret === '' || ! hash_equals($secret, (string) $request->query('token', ''))) {
+        if ($secret === '' || ! hash_equals($secret, $provided)) {
             abort(403);
         }
 
