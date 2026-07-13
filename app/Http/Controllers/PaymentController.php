@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\AuditLog;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use Illuminate\Http\RedirectResponse;
@@ -21,9 +22,25 @@ class PaymentController extends Controller
             'pending' => Payment::where('status', 'pending')->sum('amount'),
         ];
 
-        $driver = config('services.payments.driver', 'manual');
+        $pendingDeposits = Payment::pendingDeposits()->with(['patient', 'appointment.provider.user'])
+            ->orderBy('expires_at')->get();
 
-        return view('payments.index', compact('payments', 'totals', 'driver'));
+        $clinicId = auth()->user()->clinic_id;
+        $driver = $clinicId ? app(PaymentService::class)->driver($clinicId) : config('services.payments.driver', 'manual');
+
+        return view('payments.index', compact('payments', 'totals', 'driver', 'pendingDeposits'));
+    }
+
+    /** Staff confirms a pending deposit was collected (manual driver — cash at the desk). */
+    public function confirmDeposit(Payment $payment, PaymentService $payments): RedirectResponse
+    {
+        abort_unless($payment->type === 'deposit' && $payment->status === 'pending', 404);
+
+        $before = $payment->toArray();
+        $payments->confirmDeposit($payment);
+        AuditLog::record('deposit_confirmed', $payment, $before, $payment->fresh()->toArray());
+
+        return back()->with('success', 'Deposit marked as collected.');
     }
 
     /** Collect a copay / fee for an appointment. */
@@ -35,14 +52,16 @@ class PaymentController extends Controller
             'method' => ['required', 'in:cash,card,insurance'],
         ]);
 
-        $payments->charge($appointment, (float) $data['amount'], $data['type'], $data['method']);
+        $payment = $payments->charge($appointment, (float) $data['amount'], $data['type'], $data['method']);
+        AuditLog::record('payment_charged', $payment, null, $payment->toArray());
 
-        return back()->with('success', 'Payment of $'.number_format($data['amount'], 2).' recorded.');
+        return back()->with('success', 'Payment of '.($payment->currency === 'INR' ? '₹' : '$').number_format($data['amount'], 2).' recorded.');
     }
 
     public function refund(Payment $payment, PaymentService $payments): RedirectResponse
     {
-        $payments->refund($payment);
+        $refund = $payments->refund($payment);
+        AuditLog::record('payment_refunded', $refund, null, $refund->toArray());
 
         return back()->with('success', 'Refund recorded.');
     }

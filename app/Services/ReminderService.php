@@ -119,7 +119,7 @@ class ReminderService
             'when' => $a->start_at->format('l, F j \a\t g:i A'),
             'type' => $reminder->type,
             'locale' => $a->patient->locale ?? 'en',
-        ]);
+        ], $a->clinic_id);
 
         // The action links are always appended verbatim — never AI-generated.
         return implode("\n", [

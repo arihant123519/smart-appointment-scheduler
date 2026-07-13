@@ -97,6 +97,123 @@
       </div>
     </div>
   </div>
+
+  {{-- Revenue & patient intelligence: flags, benchmarking, fine-grained utilization --}}
+  <div class="row g-3 mt-1">
+    <div class="col-12"><h6 class="text-muted mb-0 mt-2">💡 Revenue &amp; patient intelligence</h6></div>
+
+    <div class="col-xl-7">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Flagged patterns (30d)</h6>
+          <span class="text-muted small">For review — nothing here changes automatically</span>
+        </div>
+        <div class="card-body">
+          @forelse ($revenueLeaks as $flag)
+            <div class="alert alert-warning-subtle border-warning-subtle mb-2">
+              <div class="fw-semibold small">{{ $flag['title'] }}</div>
+              <div class="text-muted small mb-0">{{ $flag['detail'] }}</div>
+            </div>
+          @empty
+            <p class="text-muted small mb-0">No notable patterns flagged this month.</p>
+          @endforelse
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card h-100">
+        <div class="card-header"><h6 class="mb-0">How you compare to similar clinics (30d)</h6></div>
+        <div class="card-body">
+          @if ($benchmark && $benchmark['available'])
+            <div class="row text-center g-2">
+              <div class="col-6">
+                <div class="text-muted small">Your no-show rate</div>
+                <div class="h4 fw-bold">{{ $benchmark['clinic']['no_show_rate'] }}%</div>
+                <div class="text-muted small">vs. {{ $benchmark['others']['no_show_rate'] }}% average</div>
+              </div>
+              <div class="col-6">
+                <div class="text-muted small">Your completion rate</div>
+                <div class="h4 fw-bold">{{ $benchmark['clinic']['completion_rate'] }}%</div>
+                <div class="text-muted small">vs. {{ $benchmark['others']['completion_rate'] }}% average</div>
+              </div>
+            </div>
+          @else
+            <p class="text-muted small mb-0">{{ $benchmark['reason'] ?? 'Benchmarking is unavailable right now.' }}</p>
+          @endif
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Provider utilization by day &amp; hour (30d)</h6></div>
+        <div class="card-body">
+          @if (empty($heatmap['providers']))
+            <p class="text-muted small mb-0">No active providers to show.</p>
+          @else
+            <div class="table-responsive">
+              <table class="table table-sm text-center align-middle mb-0" style="min-width: 900px;">
+                <thead>
+                  <tr>
+                    <th class="text-start">Provider</th>
+                    @foreach ($heatmap['hours'] as $h)
+                      <th class="small text-muted fw-normal">{{ \Carbon\Carbon::createFromTime($h)->format('gA') }}</th>
+                    @endforeach
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach ($heatmap['providers'] as $providerId => $providerName)
+                    <tr>
+                      <td class="text-start small fw-semibold">{{ $providerName }}</td>
+                      @foreach ($heatmap['hours'] as $h)
+                        @php
+                          $total = 0;
+                          foreach (range(0, 6) as $dow) { $total += $heatmap['cells']["{$providerId}-{$dow}-{$h}"] ?? 0; }
+                          $intensity = min(1, $total / 8);
+                        @endphp
+                        <td style="background-color: rgba(89, 85, 209, {{ $intensity }}); color: {{ $intensity > 0.5 ? '#fff' : 'inherit' }};" title="{{ $total }} appointment(s) over 30 days">
+                          {{ $total > 0 ? $total : '' }}
+                        </td>
+                      @endforeach
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            </div>
+            <div class="text-muted small mt-2">Darker = busier. Summed across all weekdays in the last 30 days.</div>
+          @endif
+        </div>
+      </div>
+    </div>
+
+    @if (!empty($experiments))
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header"><h6 class="mb-0">A/B tests</h6></div>
+          <div class="card-body">
+            @foreach ($experiments as $exp)
+              <div class="mb-3 {{ !$loop->last ? 'pb-3 border-bottom' : '' }}">
+                <div class="fw-semibold small mb-2">{{ $exp['experiment']->name }}</div>
+                <div class="row g-2">
+                  @foreach ($exp['variants'] as $v)
+                    <div class="col-md-3 col-6">
+                      <div class="border rounded-3 p-2">
+                        <div class="text-muted small text-uppercase">{{ $v['variant'] }}</div>
+                        <div class="h5 fw-bold mb-0">{{ $v['rate'] }}%</div>
+                        <div class="text-muted small">{{ $v['converted'] }}/{{ $v['assigned'] }} booked</div>
+                      </div>
+                    </div>
+                  @endforeach
+                </div>
+              </div>
+            @endforeach
+            <div class="text-muted small mb-0">Never switches automatically — review the numbers and adopt a winner yourself.</div>
+          </div>
+        </div>
+      </div>
+    @endif
+  </div>
 @endsection
 
 @push('scripts')

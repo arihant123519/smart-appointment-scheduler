@@ -21,9 +21,20 @@
   <link rel="stylesheet" href="{{ asset('assets/libs/datatables/datatables.min.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/app-shell.css') }}">
+  @php $sasBrandColor = auth()->user()?->clinic?->primary_color; @endphp
+  @if ($sasBrandColor)
+    <style>
+      :root {
+        --bs-primary: {{ $sasBrandColor }};
+        --bs-primary-rgb: {{ implode(',', sscanf($sasBrandColor, '#%02x%02x%02x')) }};
+      }
+      .btn-primary { background-color: {{ $sasBrandColor }}; border-color: {{ $sasBrandColor }}; }
+    </style>
+  @endif
   @stack('styles')
 </head>
 <body>
+  <a class="visually-hidden-focusable" href="#mainContent">Skip to content</a>
   <div class="sas-layout">
     @include('partials.sidebar')
     <div class="sas-backdrop" id="sasBackdrop"></div>
@@ -31,7 +42,7 @@
     <div class="sas-main">
       @include('partials.topbar')
 
-      <main class="sas-content">
+      <main class="sas-content" id="mainContent" tabindex="-1">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
           <div>
             <h1 class="sas-page-title">@yield('page_title', View::yieldContent('title', 'Dashboard'))</h1>
@@ -48,7 +59,7 @@
         @if ($errors->any())
           <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <ul class="mb-0 ps-3">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         @endif
 

@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\Clinic;
 use App\Models\Provider;
 use App\Models\WhatsappConversation;
 use App\Services\AI\AiService;
+use App\Services\BenchmarkingService;
+use App\Services\ExperimentService;
+use App\Services\RevenueLeakService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +17,10 @@ use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function index(): View
+    public function index(RevenueLeakService $revenueLeaks, BenchmarkingService $benchmarking, ExperimentService $experiments): View
     {
         $m = $this->metrics();
+        $clinic = auth()->user()->clinic ?? Clinic::first();
 
         return view('reports.index', [
             'noShowRate' => $m['no_show_rate_pct'],
@@ -24,9 +29,52 @@ class ReportController extends Controller
             'byProvider' => $m['by_provider'],
             'byChannel' => $m['by_channel'],
             'utilization' => $m['utilization'],
+            'experiments' => $experiments->allResults(),
             'funnel' => $this->funnel(),
             'flow' => $this->flowMetrics(),
+            'revenueLeaks' => $revenueLeaks->detect(),
+            'heatmap' => $this->providerHeatmap(),
+            'benchmark' => $clinic ? $benchmarking->compare($clinic) : null,
         ]);
+    }
+
+    /**
+     * Provider utilization by day-of-week × hour (30 days) — a finer-grained
+     * companion to the flat per-provider bar chart below.
+     *
+     * @return array{providers: array<int,string>, days: array<int,string>, hours: array<int,int>, cells: array<string,int>}
+     */
+    private function providerHeatmap(): array
+    {
+        $window = now()->subDays(30);
+        $driver = DB::connection()->getDriverName();
+        $dowExpr = $driver === 'sqlite' ? "CAST(strftime('%w', start_at) AS INTEGER)" : 'DAYOFWEEK(start_at) - 1';
+        $hourExpr = $driver === 'sqlite' ? "CAST(strftime('%H', start_at) AS INTEGER)" : 'HOUR(start_at)';
+
+        $rows = Appointment::where('start_at', '>=', $window)
+            ->active()
+            ->selectRaw("provider_id, $dowExpr as dow, $hourExpr as hour, count(*) as total")
+            ->groupBy('provider_id', 'dow', 'hour')
+            ->get();
+
+        $providers = Provider::with('user')->where('is_active', true)->get()->keyBy('id');
+        $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        $hours = range(7, 19);
+
+        $cells = [];
+        foreach ($rows as $row) {
+            if (! $providers->has($row->provider_id)) {
+                continue;
+            }
+            $cells[$row->provider_id.'-'.$row->dow.'-'.$row->hour] = (int) $row->total;
+        }
+
+        return [
+            'providers' => $providers->map(fn ($p) => $p->name)->all(),
+            'days' => $days,
+            'hours' => $hours,
+            'cells' => $cells,
+        ];
     }
 
     /** Appointment status funnel over the last 30 days (booked → completed vs. lost). */
@@ -86,7 +134,7 @@ class ReportController extends Controller
     {
         $data = $request->validate(['question' => ['required', 'string', 'max:300']]);
 
-        $answer = $ai->answerReportQuery($data['question'], $this->metricsForAi());
+        $answer = $ai->answerReportQuery($data['question'], $this->metricsForAi(), auth()->user()?->clinic_id);
 
         return response()->json(['answer' => $answer]);
     }

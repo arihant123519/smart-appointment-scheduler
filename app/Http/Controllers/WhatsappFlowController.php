@@ -117,7 +117,12 @@ class WhatsappFlowController extends Controller
      */
     private function templateSections(): array
     {
-        return collect(WhatsappTemplate::sectionsForEditing())
+        $clinicId = auth()->user()->clinic_id;
+        if (! $clinicId) {
+            return [];
+        }
+
+        return collect(WhatsappTemplate::sectionsForEditing($clinicId))
             ->keyBy('event')
             ->map(fn ($section) => ['body' => $section['body'], 'variables' => $section['variables']])
             ->all();

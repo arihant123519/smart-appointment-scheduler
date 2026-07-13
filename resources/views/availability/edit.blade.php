@@ -3,6 +3,16 @@
 @section('title', 'Availability — '.$provider->name)
 
 @section('content')
+  @if (!empty($scheduleSuggestions))
+    <div class="alert alert-info-subtle border-info-subtle mb-3">
+      <div class="fw-semibold small mb-1">💡 Schedule suggestion</div>
+      @foreach ($scheduleSuggestions as $suggestion)
+        <div class="small mb-1">{{ $suggestion }}</div>
+      @endforeach
+      <div class="text-muted small mb-0">Based on the last 60 days of bookings. Nothing changes until you edit the hours below yourself.</div>
+    </div>
+  @endif
+
   <div class="row g-3">
     <div class="col-xl-7">
       <div class="card">

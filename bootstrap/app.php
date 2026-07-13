@@ -16,11 +16,15 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
         ]);
 
-        // Gupshup posts to this webhook as a server-to-server call with no
-        // Laravel session/CSRF token — it's authenticated by a shared-secret
-        // `?token=` query param instead (see GupshupWebhookController).
+        // These post as a server-to-server call with no Laravel session/CSRF
+        // token — Gupshup is authenticated by a shared-secret `?token=` query
+        // param, Razorpay by its signed-payload scheme (see the respective
+        // webhook controllers).
         $middleware->validateCsrfTokens(except: [
             'webhooks/gupshup',
+            'webhooks/razorpay',
+            'webhooks/sms-inbound',
+            'webhooks/missed-call',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -23,8 +23,9 @@ class AppointmentNotificationController extends Controller
 
         // Surface whether the relevant WhatsApp templates are wired up, so the
         // admin knows WhatsApp sends will actually go out.
-        $reminderTemplateSet = (bool) (WhatsappTemplate::forEvent('appointment')['template_id'] ?? null);
-        $statusTemplateSet = (bool) (WhatsappTemplate::forEvent('status_update', false)['template_id'] ?? null);
+        $clinicId = auth()->user()->clinic_id;
+        $reminderTemplateSet = $clinicId && (bool) (WhatsappTemplate::forEvent($clinicId, 'appointment')['template_id'] ?? null);
+        $statusTemplateSet = $clinicId && (bool) (WhatsappTemplate::forEvent($clinicId, 'status_update', false)['template_id'] ?? null);
 
         return view('appointments.notifications', compact(
             'leadTimes', 'status', 'repeat', 'reminderTemplateSet', 'statusTemplateSet'

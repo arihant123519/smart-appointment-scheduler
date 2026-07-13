@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use App\Models\AiRequestLog;
 use App\Models\Service;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -30,18 +31,37 @@ class AiService
     /** Token count from the most recent provider call (for logging). */
     private ?int $lastTokens = null;
 
-    public function provider(): string
+    /**
+     * A clinic's own saved AI provider, falling back to the app-wide `.env`
+     * default when the clinic hasn't configured one (or when no clinic
+     * context applies, e.g. a system-wide background job).
+     */
+    public function provider(?int $clinicId = null): string
     {
-        return config('services.ai.provider', 'rule_based');
+        return $clinicId
+            ? Setting::getForClinic($clinicId, 'ai.provider', config('services.ai.provider', 'rule_based'))
+            : config('services.ai.provider', 'rule_based');
     }
 
     /** AI is on only when a non-rule provider is selected and its key is present. */
-    public function enabled(): bool
+    public function enabled(?int $clinicId = null): bool
     {
-        $provider = $this->provider();
+        $provider = $this->provider($clinicId);
 
         return in_array($provider, ['gemini', 'openai'], true)
-            && ! empty(config("services.ai.{$provider}.key"));
+            && ! empty($this->aiSetting($clinicId, "ai.{$provider}_key", "services.ai.{$provider}.key"));
+    }
+
+    /**
+     * A clinic's own saved value for $key, falling back to the app-wide
+     * `.env`-backed config default at $configPath when the clinic hasn't
+     * configured its own (or when there's no clinic context at all).
+     */
+    private function aiSetting(?int $clinicId, string $key, string $configPath): mixed
+    {
+        $default = config($configPath);
+
+        return $clinicId ? Setting::getForClinic($clinicId, $key, $default) : $default;
     }
 
     // --- public features ------------------------------------------------------
@@ -51,21 +71,45 @@ class AiService
      *
      * @return array{service_id:?int, specialty:?string, date:?string, period:?string, urgency:?string, note:string}
      */
-    public function parseBookingIntent(string $text): array
+    public function parseBookingIntent(string $text, ?int $clinicId = null): array
     {
-        return $this->run('nlp_booking', fn () => $this->ruleParseBooking($text), $text);
+        return $this->run('nlp_booking', fn () => $this->ruleParseBooking($text), $text, $clinicId);
     }
 
     /** Condense intake responses into a concise pre-visit clinical brief. */
-    public function summarizeIntake(array $responses): string
+    public function summarizeIntake(array $responses, ?int $clinicId = null): string
     {
-        return $this->run('intake_summary', fn () => $this->ruleSummarize($responses), json_encode($responses));
+        return $this->run('intake_summary', fn () => $this->ruleSummarize($responses), json_encode($responses), $clinicId);
+    }
+
+    /**
+     * Draft a referral letter, consent form, or plain-language visit recap.
+     * Always staff-reviewed and explicitly approved before it's sent — these
+     * methods only produce the draft text.
+     *
+     * @param  array<string, string>  $context  patient_name, provider_name, clinic_name, service_name, date, reason, notes
+     */
+    public function draftReferralLetter(array $context, ?int $clinicId = null): string
+    {
+        return $this->run('referral_letter', fn () => $this->ruleReferralLetter($context), json_encode($context), $clinicId);
+    }
+
+    /** @param  array<string, string>  $context */
+    public function draftConsentForm(array $context, ?int $clinicId = null): string
+    {
+        return $this->run('consent_form', fn () => $this->ruleConsentForm($context), json_encode($context), $clinicId);
+    }
+
+    /** @param  array<string, string>  $context */
+    public function draftVisitRecap(array $context, ?int $clinicId = null): string
+    {
+        return $this->run('visit_recap', fn () => $this->ruleVisitRecap($context), json_encode($context), $clinicId);
     }
 
     /** Classify free text as positive | neutral | negative. */
-    public function analyzeSentiment(string $text): string
+    public function analyzeSentiment(string $text, ?int $clinicId = null): string
     {
-        return $this->run('sentiment', fn () => $this->ruleSentiment($text), $text);
+        return $this->run('sentiment', fn () => $this->ruleSentiment($text), $text, $clinicId);
     }
 
     /**
@@ -74,11 +118,11 @@ class AiService
      * @param  array<int, array{role:string, content:string}>  $messages
      * @return array{reply:string, intent:?array}
      */
-    public function chat(array $messages, array $context = []): array
+    public function chat(array $messages, array $context = [], ?int $clinicId = null): array
     {
         $input = json_encode(['messages' => $messages, 'context' => $context]);
 
-        return $this->run('assistant_chat', fn () => $this->ruleChat($messages), $input);
+        return $this->run('assistant_chat', fn () => $this->ruleChat($messages), $input, $clinicId);
     }
 
     /**
@@ -86,9 +130,9 @@ class AiService
      *
      * @return array{specialty:?string, urgency:string, advice:string, why_serious:string, can_lead_to:string}
      */
-    public function routeSymptoms(string $text): array
+    public function routeSymptoms(string $text, ?int $clinicId = null): array
     {
-        return $this->run('symptom_routing', fn () => $this->ruleRouteSymptoms($text), $text);
+        return $this->run('symptom_routing', fn () => $this->ruleRouteSymptoms($text), $text, $clinicId);
     }
 
     /**
@@ -103,7 +147,7 @@ class AiService
      * @param  array<int, array{type:string, description:string}>  $queryTypes
      * @return array{action:string, key:?string, query:array{type:?string, name:?string, range:?string}, reply:string}
      */
-    public function assistantCommand(string $text, array $catalog, array $queryTypes = []): array
+    public function assistantCommand(string $text, array $catalog, array $queryTypes = [], ?int $clinicId = null): array
     {
         $input = json_encode([
             'request' => $text,
@@ -114,7 +158,8 @@ class AiService
         $result = $this->run(
             'assistant_command',
             fn () => $this->ruleAssistantCommand($text, $catalog, $queryTypes),
-            $input
+            $input,
+            $clinicId,
         );
 
         // Defence in depth: never return a key or query type outside what was offered.
@@ -133,9 +178,9 @@ class AiService
     }
 
     /** Generate a personalized, tone-appropriate reminder message. */
-    public function generateReminderMessage(array $context): string
+    public function generateReminderMessage(array $context, ?int $clinicId = null): string
     {
-        return $this->run('smart_reminder', fn () => $this->ruleReminder($context), json_encode($context));
+        return $this->run('smart_reminder', fn () => $this->ruleReminder($context), json_encode($context), $clinicId);
     }
 
     /**
@@ -143,17 +188,17 @@ class AiService
      * around 3", "day after tomorrow morning") as an absolute date/time.
      * Returns null when no date/time could be made out of the text at all.
      */
-    public function parseDateTime(string $text): ?string
+    public function parseDateTime(string $text, ?int $clinicId = null): ?string
     {
-        return $this->run('parse_datetime', fn () => $this->ruleParseDateTime($text), $text);
+        return $this->run('parse_datetime', fn () => $this->ruleParseDateTime($text), $text, $clinicId);
     }
 
     /** Answer an admin's natural-language question over a supplied metrics array. */
-    public function answerReportQuery(string $question, array $data): string
+    public function answerReportQuery(string $question, array $data, ?int $clinicId = null): string
     {
         $input = json_encode(['question' => $question, 'data' => $data]);
 
-        return $this->run('report_query', fn () => $this->ruleReportAnswer($question, $data), $input);
+        return $this->run('report_query', fn () => $this->ruleReportAnswer($question, $data), $input, $clinicId);
     }
 
     /**
@@ -161,14 +206,25 @@ class AiService
      *
      * @return array{summary:string, themes:array<int, string>}
      */
-    public function summarizeFeedbackThemes(array $comments): array
+    public function summarizeFeedbackThemes(array $comments, ?int $clinicId = null): array
     {
-        return $this->run('feedback_themes', fn () => $this->ruleFeedbackThemes($comments), json_encode($comments));
+        return $this->run('feedback_themes', fn () => $this->ruleFeedbackThemes($comments), json_encode($comments), $clinicId);
+    }
+
+    /** Trivial connectivity check for the Integrations page's "Test AI" button. */
+    public function testConnection(?int $clinicId = null): string
+    {
+        return $this->run(
+            'ai_test',
+            fn () => 'Rule-based fallback is active — no AI provider is configured or reachable for this clinic.',
+            "Say hello in one short, warm sentence to confirm the AI connection is working.",
+            $clinicId,
+        );
     }
 
     // --- execution + logging --------------------------------------------------
 
-    private function run(string $feature, callable $fallback, string $input)
+    private function run(string $feature, callable $fallback, string $input, ?int $clinicId = null)
     {
         $start = microtime(true);
         $providerUsed = 'rule_based';
@@ -178,10 +234,10 @@ class AiService
         $this->lastTokens = null;
 
         try {
-            if ($this->enabled() && $this->withinRateLimit()) {
-                $result = $this->callProvider($feature, $input);
+            if ($this->enabled($clinicId) && $this->withinRateLimit($clinicId)) {
+                $result = $this->callProvider($feature, $input, $clinicId);
                 if ($result !== null) {
-                    $providerUsed = $this->provider();
+                    $providerUsed = $this->provider($clinicId);
                 }
             }
         } catch (\Throwable $e) {
@@ -193,7 +249,7 @@ class AiService
         if ($result === null) {
             $result = $fallback();
             // If AI was supposed to run but produced nothing, mark it a fallback.
-            if ($this->enabled() && $status !== 'failed') {
+            if ($this->enabled($clinicId) && $status !== 'failed') {
                 $status = 'fallback';
             }
         }
@@ -212,15 +268,19 @@ class AiService
         return $result;
     }
 
-    /** Simple per-minute cap to protect against AI cost overrun (PRD risk §8). */
-    private function withinRateLimit(): bool
+    /**
+     * Simple per-minute cap to protect against AI cost overrun (PRD risk §8).
+     * Scoped per clinic when a clinic id is available, so one busy clinic
+     * can't throttle every other clinic sharing this deployment.
+     */
+    private function withinRateLimit(?int $clinicId = null): bool
     {
         $max = (int) config('services.ai.max_per_minute', 60);
         if ($max <= 0) {
             return true;
         }
 
-        $key = 'ai_calls_'.now()->format('YmdHi');
+        $key = 'ai_calls_'.($clinicId ? $clinicId.'_' : '').now()->format('YmdHi');
         $count = (int) Cache::get($key, 0);
         if ($count >= $max) {
             return false;
@@ -236,13 +296,13 @@ class AiService
      * Build a feature-specific prompt, send it to the active provider, and parse
      * the response. Returns null to trigger the rule-based fallback.
      */
-    private function callProvider(string $feature, string $input)
+    private function callProvider(string $feature, string $input, ?int $clinicId = null)
     {
         [$system, $user, $expectJson] = $this->promptFor($feature, $input);
 
-        $raw = $this->provider() === 'openai'
-            ? $this->callOpenAi($system, $user, $expectJson)
-            : $this->callGemini($system, $user, $expectJson);
+        $raw = $this->provider($clinicId) === 'openai'
+            ? $this->callOpenAi($system, $user, $expectJson, $clinicId)
+            : $this->callGemini($system, $user, $expectJson, $clinicId);
 
         if ($raw === null || trim($raw) === '') {
             return null;
@@ -251,10 +311,12 @@ class AiService
         return $this->parseResponse($feature, $raw, $input);
     }
 
-    private function callGemini(string $system, string $user, bool $expectJson): ?string
+    private function callGemini(string $system, string $user, bool $expectJson, ?int $clinicId = null): ?string
     {
-        $cfg = config('services.ai.gemini');
-        $url = rtrim($cfg['endpoint'], '/').'/'.$cfg['model'].':generateContent';
+        $key = $this->aiSetting($clinicId, 'ai.gemini_key', 'services.ai.gemini.key');
+        $model = $this->aiSetting($clinicId, 'ai.gemini_model', 'services.ai.gemini.model');
+        $endpoint = config('services.ai.gemini.endpoint');
+        $url = rtrim($endpoint, '/').'/'.$model.':generateContent';
 
         $payload = [
             'system_instruction' => ['parts' => [['text' => $system]]],
@@ -269,7 +331,7 @@ class AiService
         }
 
         $resp = Http::timeout(config('services.ai.timeout', 20))
-            ->withQueryParameters(['key' => $cfg['key']])
+            ->withQueryParameters(['key' => $key])
             ->acceptJson()
             ->post($url, $payload);
 
@@ -282,12 +344,14 @@ class AiService
         return $resp->json('candidates.0.content.parts.0.text');
     }
 
-    private function callOpenAi(string $system, string $user, bool $expectJson): ?string
+    private function callOpenAi(string $system, string $user, bool $expectJson, ?int $clinicId = null): ?string
     {
-        $cfg = config('services.ai.openai');
+        $key = $this->aiSetting($clinicId, 'ai.openai_key', 'services.ai.openai.key');
+        $model = $this->aiSetting($clinicId, 'ai.openai_model', 'services.ai.openai.model');
+        $endpoint = config('services.ai.openai.endpoint');
 
         $payload = [
-            'model' => $cfg['model'],
+            'model' => $model,
             'temperature' => 0.2,
             'messages' => [
                 ['role' => 'system', 'content' => $system],
@@ -299,9 +363,9 @@ class AiService
         }
 
         $resp = Http::timeout(config('services.ai.timeout', 20))
-            ->withToken($cfg['key'])
+            ->withToken($key)
             ->acceptJson()
-            ->post($cfg['endpoint'], $payload);
+            ->post($endpoint, $payload);
 
         if (! $resp->successful()) {
             throw new \RuntimeException('OpenAI HTTP '.$resp->status().': '.Str::limit($resp->body(), 200));
@@ -376,8 +440,40 @@ class AiService
             'report_query' => [
                 'You are a clinic analytics assistant. Answer the admin question using ONLY the JSON '.
                 'metrics provided. Be specific and include the numbers. If the data cannot answer the '.
-                'question, say so plainly. 1-3 sentences.',
+                'question, say so plainly. If the admin is asking how to improve, reduce, fix, or is '.
+                'asking "why" about a metric (e.g. "how do I improve the no-show rate", "why is this '.
+                'provider worse"), do not just restate the number — identify which provider/channel/slot '.
+                'in the data is driving the problem, then give 2-4 concrete, specific recommendations '.
+                'using ONLY levers that actually exist in this app: requiring a deposit for a service '.
+                '(Services → edit → "Require a deposit at booking"), enabling controlled overbooking for '.
+                'that provider\'s high-no-show day/hour slots (Services → edit → "Allow controlled '.
+                'overbooking"), adding an extra reminder closer to the appointment time (Appointment '.
+                'Notifications settings), or leaning on the waitlist auto-fill for freed slots. Never '.
+                'suggest a feature that isn\'t listed here. 2-5 sentences.',
                 $input, // metrics only, no PHI
+                false,
+            ],
+            'referral_letter' => [
+                'You are a clinic administrator drafting a referral letter on the provider\'s behalf, for the '.
+                'provider to review and edit before it is sent. Use the patient/provider/clinic/reason context '.
+                'given. Keep it short, professional, and factual — no invented medical findings or diagnosis '.
+                'beyond what is given. Plain text, ready to send as-is or lightly edited.',
+                $this->readableResponses($input),
+                false,
+            ],
+            'consent_form' => [
+                'You are a clinic administrator drafting a plain-language consent form for a specific service, '.
+                'for staff to review before use. State the service, that risks/benefits were explained, that '.
+                'questions were answered, and a voluntary-consent statement, ending with signature/date lines. '.
+                'Do not invent specific risks not implied by the service name — keep language generic and safe.',
+                $this->readableResponses($input),
+                false,
+            ],
+            'visit_recap' => [
+                'You are writing a short, warm, plain-language recap for a patient to reread after their visit — '.
+                'a courtesy note, never a clinical record. Use ONLY the notes given (do not invent what was '.
+                'discussed); if no notes are given, keep it generic and warm. 3-5 short sentences.',
+                $this->readableResponses($input),
                 false,
             ],
             'parse_datetime' => [
@@ -668,6 +764,52 @@ class AiService
         return implode("\n", $lines);
     }
 
+    /** @param  array<string, string>  $context */
+    private function ruleReferralLetter(array $context): string
+    {
+        $patient = $context['patient_name'] ?: 'the patient';
+        $provider = $context['provider_name'] ?: 'the referring provider';
+        $clinic = $context['clinic_name'] ?: 'our clinic';
+        $reason = $context['reason'] ?: 'the concern discussed during the visit';
+
+        return "To whom it may concern,\n\n".
+            "This letter refers {$patient}, seen at {$clinic} by {$provider}, for further evaluation of: {$reason}. ".
+            "Relevant visit details are available on request. Please don't hesitate to contact {$clinic} with any questions.\n\n".
+            "Regards,\n{$provider}\n{$clinic}";
+    }
+
+    /** @param  array<string, string>  $context */
+    private function ruleConsentForm(array $context): string
+    {
+        $patient = $context['patient_name'] ?: 'the patient';
+        $service = $context['service_name'] ?: 'the recommended treatment';
+        $clinic = $context['clinic_name'] ?: 'this clinic';
+
+        return "Consent for {$service}\n\n".
+            "I, {$patient}, confirm that {$clinic} has explained the nature, purpose, expected benefits, and possible ".
+            "risks of {$service} to me in language I understand, that my questions have been answered, and that I ".
+            "voluntarily consent to proceed.\n\n".
+            'Signature: _____________________   Date: _____________________';
+    }
+
+    /** @param  array<string, string>  $context */
+    private function ruleVisitRecap(array $context): string
+    {
+        $patient = $context['patient_name'] ?: 'there';
+        $clinic = $context['clinic_name'] ?: 'our clinic';
+        $service = $context['service_name'] ?: 'your visit';
+        $date = $context['date'] ?: 'your recent visit';
+        $notes = trim((string) ($context['notes'] ?? ''));
+
+        $lines = ["Hi {$patient}, thanks for visiting {$clinic} on {$date} for {$service}."];
+        $lines[] = $notes !== ''
+            ? "Here's a quick recap of what we discussed: {$notes}"
+            : 'We discussed your visit and any next steps with you in person.';
+        $lines[] = "If anything is unclear or your symptoms change, please reach out — we're happy to help.";
+
+        return implode("\n\n", $lines);
+    }
+
     private function ruleSentiment(string $text): string
     {
         $lower = Str::lower($text);
@@ -733,8 +875,31 @@ class AiService
             default => 'all',
         };
 
+        // Clinic-wide questions — no person name involved, so check these first.
+        $clinicWideType = null;
+        if (Str::contains($lower, ['fill rate', 'how full']) && in_array('fill_rate', $typeKeys, true)) {
+            $clinicWideType = 'fill_rate';
+        } elseif (Str::contains($lower, ['revenue leak', 'losing money', 'revenue-leak']) && in_array('revenue_leak', $typeKeys, true)) {
+            $clinicWideType = 'revenue_leak';
+        } elseif (Str::contains($lower, 'waitlist') && Str::contains($lower, ['next', 'who']) && in_array('waitlist_next', $typeKeys, true)) {
+            $clinicWideType = 'waitlist_next';
+        } elseif (Str::contains($lower, ['referral stats', 'referral conversion', 'how are referrals', 'how many referrals', 'referral program']) && in_array('referral_stats', $typeKeys, true)) {
+            $clinicWideType = 'referral_stats';
+        }
+
+        if ($clinicWideType) {
+            return [
+                'action' => 'query',
+                'key' => null,
+                'query' => ['type' => $clinicWideType, 'name' => null, 'range' => $range],
+                'reply' => 'Looking that up…',
+            ];
+        }
+
         $queryType = null;
-        if (Str::contains($lower, ['how many', 'how often', 'number of times', 'times']) && in_array('patient_visit_count', $typeKeys, true)) {
+        if (Str::contains($lower, ['value score', 'loyalty score', 'patient score', 'how valuable']) && in_array('patient_value_score', $typeKeys, true)) {
+            $queryType = 'patient_value_score';
+        } elseif (Str::contains($lower, ['how many', 'how often', 'number of times', 'times']) && in_array('patient_visit_count', $typeKeys, true)) {
             $queryType = 'patient_visit_count';
         } elseif (Str::contains($lower, ['provider', 'doctor', 'dr ', 'dr.']) && in_array('provider_appointments', $typeKeys, true)) {
             $queryType = 'provider_appointments';
@@ -900,6 +1065,24 @@ class AiService
 
     private function ruleReportAnswer(string $question, array $data): string
     {
+        $lower = Str::lower($question);
+        $advisory = Str::contains($lower, [
+            'improve', 'reduce', 'lower', 'fix', 'increase', 'decrease', 'cut down',
+            'how can i', 'how do i', 'how to', 'what should', 'why is', 'why are', 'why do', 'help',
+        ]);
+
+        if ($advisory && Str::contains($lower, ['no show', 'no-show', 'noshow'])) {
+            return $this->ruleNoShowAdvice($data);
+        }
+
+        if ($advisory && Str::contains($lower, ['channel', 'booking source'])) {
+            return $this->ruleChannelAdvice($data);
+        }
+
+        if ($advisory) {
+            return $this->ruleGeneralAdvice($data);
+        }
+
         $parts = [];
         foreach ($data as $key => $value) {
             if (is_scalar($value)) {
@@ -908,7 +1091,72 @@ class AiService
         }
 
         return 'Based on the available metrics — '.implode('; ', $parts).
-            '. (Rule-based answer; enable the AI provider for natural-language analysis.)';
+            '. (Rule-based answer; enable the AI provider for a fuller natural-language analysis.)';
+    }
+
+    /**
+     * A no-show "how do I improve this" answer that names the actual worst
+     * provider/slot from the data, then points at the specific levers this
+     * app already has built (never a generic platitude with no numbers).
+     */
+    private function ruleNoShowAdvice(array $data): string
+    {
+        $sentences = [];
+        $overall = $data['no_show_rate_pct'] ?? null;
+        if ($overall !== null) {
+            $sentences[] = "Your overall no-show rate is {$overall}% over the last 30 days.";
+        }
+
+        $byProvider = collect($data['no_show_rate_by_provider'] ?? [])
+            ->filter(fn ($r) => ($r['total'] ?? 0) >= 3); // ignore providers with too few visits to mean anything
+        $worst = $byProvider->sortByDesc('rate_pct')->first();
+        $best = $byProvider->sortBy('rate_pct')->first();
+
+        if ($worst) {
+            $sentences[] = "{$worst['provider']} has the worst rate at {$worst['rate_pct']}% ({$worst['no_shows']} of {$worst['total']}) — that's the place to focus first.";
+        }
+        if ($best && $worst && $best['provider'] !== $worst['provider'] && $best['rate_pct'] < $worst['rate_pct']) {
+            $sentences[] = "{$best['provider']} is much lower at {$best['rate_pct']}%, so this looks specific to that provider or their slots rather than clinic-wide.";
+        }
+
+        $sentences[] = 'A few levers already built into this app move this number directly: require a deposit for '.
+            ($worst ? "{$worst['provider']}'s" : 'the highest-risk').' services (Services → edit → "Require a deposit at booking" — a no-show automatically forfeits it), '.
+            'turn on an extra reminder closer to the appointment time (Appointment Notifications settings), '.
+            'enable controlled overbooking for the specific day/hour slots that skip most (Services → edit → "Allow controlled overbooking"), '.
+            'and make sure the waitlist is filled so a freed slot doesn\'t sit empty.';
+
+        return implode(' ', $sentences).' (Rule-based answer; enable the AI provider for a fuller natural-language analysis.)';
+    }
+
+    /** A "how do I improve booking channels" answer grounded in the actual channel mix. */
+    private function ruleChannelAdvice(array $data): string
+    {
+        $byChannel = collect($data['bookings_by_channel'] ?? []);
+        if ($byChannel->isEmpty()) {
+            return "There isn't enough channel data yet to say anything specific. (Rule-based answer; enable the AI provider for a fuller natural-language analysis.)";
+        }
+
+        $total = $byChannel->sum();
+        $top = $byChannel->sortDesc();
+        $summary = $top->map(fn ($count, $channel) => Str::headline($channel).' '.round($count / max(1, $total) * 100).'%')
+            ->take(4)->implode(', ');
+
+        return "Booking channel mix over this window: {$summary}. If one channel (e.g. web) dominates, adding SMS/QR-code booking or a walk-in queue can capture patients who wouldn't otherwise book, and the Reports page's revenue-leak flags will call out any channel with an unusually high no-show rate so you know where to add a reminder or a deposit. (Rule-based answer; enable the AI provider for a fuller natural-language analysis.)";
+    }
+
+    /** Generic "how do I improve things" fallback — still grounded in whatever numbers were supplied. */
+    private function ruleGeneralAdvice(array $data): string
+    {
+        $parts = [];
+        foreach ($data as $key => $value) {
+            if (is_scalar($value)) {
+                $parts[] = Str::headline((string) $key).': '.$value;
+            }
+        }
+
+        return 'Current numbers — '.implode('; ', $parts).'. For a specific recommendation, ask about one metric directly '.
+            '(e.g. "how do I improve the no-show rate" or "how do I improve booking channels") and the answer will point at concrete levers already built into this app — deposits, overbooking, reminder timing, and waitlist auto-fill. '.
+            '(Rule-based answer; enable the AI provider for a fuller natural-language analysis.)';
     }
 
     private function ruleFeedbackThemes(array $comments): array

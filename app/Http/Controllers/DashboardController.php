@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\AvailabilityException;
 use App\Models\Provider;
 use App\Models\User;
 use Carbon\Carbon;
@@ -18,7 +19,9 @@ class DashboardController extends Controller
         // Keep statuses honest: settle any past appointments that were never
         // finalised before we read/aggregate them. (A scheduled command does the
         // same clinic-wide; this makes the dashboard correct without a cron.)
-        Appointment::settleOverdue();
+        $settled = Appointment::settleOverdue();
+        app(\App\Services\RetentionService::class)->scheduleForCompletedIds($settled['completed_ids']);
+        app(\App\Services\PaymentService::class)->forfeitForNoShowIds($settled['missed_ids']);
 
         // Patients get a focused self-service view.
         if ($user->hasRole('patient') && ! $user->hasAnyRole(['front_desk', 'provider', 'clinic_admin', 'system_admin', 'billing'])) {
@@ -46,6 +49,16 @@ class DashboardController extends Controller
         // Status breakdown
         $statusBreakdown = Appointment::select('status', DB::raw('count(*) as total'))
             ->groupBy('status')->pluck('total', 'status')->toArray();
+
+        // Channel mix (last 30 days) — where bookings are actually coming from.
+        $channelMix = Appointment::where('start_at', '>=', $window)
+            ->select('channel', DB::raw('count(*) as total'))
+            ->groupBy('channel')->pluck('total', 'channel')->toArray();
+
+        // Fill rate (last 30 days): booked minutes vs. the clinic's actual
+        // available capacity for that period (from provider working hours,
+        // minus any full-day exceptions/holidays).
+        $fillRate = $this->fillRateStats(today()->subDays(29), today());
 
         // Completion rate (last 30 days): completed vs. everything that reached
         // a terminal outcome (completed + no-show + cancelled).
@@ -132,12 +145,71 @@ class DashboardController extends Controller
             ->orderBy('start_at')->get();
 
         return view('dashboard.index', compact(
-            'stats', 'noShowRate', 'completionRate', 'statusBreakdown',
+            'stats', 'noShowRate', 'completionRate', 'statusBreakdown', 'channelMix', 'fillRate',
             'chartLabels', 'chartData', 'chartCompleted', 'chartNoShow',
             'hourLabels', 'hourData', 'topServices',
             'todaysAppointments', 'highRisk',
             'missedAppointments', 'missedCount', 'todaysMissed'
         ));
+    }
+
+    /**
+     * Booked minutes vs. available capacity over [$start, $end] (inclusive
+     * dates). Capacity comes from each active provider's recurring weekly
+     * availability windows, with full-day exceptions (holidays, leave)
+     * excluded for that specific date. Computed in PHP rather than raw SQL
+     * date-diff functions so it works identically on MySQL and SQLite.
+     *
+     * @return array{rate: float, booked_minutes: int, available_minutes: int}
+     */
+    public function fillRateStats(Carbon $start, Carbon $end): array
+    {
+        $providers = Provider::where('is_active', true)->with('availabilities')->get();
+
+        if ($providers->isEmpty()) {
+            return ['rate' => 0.0, 'booked_minutes' => 0, 'available_minutes' => 0];
+        }
+
+        $blockedDays = AvailabilityException::whereIn('provider_id', $providers->pluck('id'))
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('is_available', false)
+            ->whereNull('start_time')
+            ->get(['provider_id', 'date'])
+            ->map(fn ($e) => $e->provider_id.'|'.$e->date->toDateString())
+            ->flip();
+
+        $availableMinutes = 0;
+        foreach ($providers as $provider) {
+            $minutesByDow = [];
+            foreach ($provider->availabilities->where('recurring', true) as $window) {
+                $dow = (int) $window->day_of_week;
+                $minutesByDow[$dow] = ($minutesByDow[$dow] ?? 0)
+                    + Carbon::parse($window->start_time)->diffInMinutes(Carbon::parse($window->end_time));
+            }
+
+            if (empty($minutesByDow)) {
+                continue;
+            }
+
+            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                if (! isset($minutesByDow[$date->dayOfWeek])) {
+                    continue;
+                }
+                if (isset($blockedDays[$provider->id.'|'.$date->toDateString()])) {
+                    continue;
+                }
+                $availableMinutes += $minutesByDow[$date->dayOfWeek];
+            }
+        }
+
+        $bookedMinutes = (int) Appointment::whereBetween('start_at', [$start, $end->copy()->endOfDay()])
+            ->whereNotIn('status', [Appointment::STATUS_CANCELLED])
+            ->get(['start_at', 'end_at'])
+            ->sum(fn ($a) => $a->start_at->diffInMinutes($a->end_at));
+
+        $rate = $availableMinutes > 0 ? round(min($bookedMinutes / $availableMinutes, 1) * 100, 1) : 0.0;
+
+        return ['rate' => $rate, 'booked_minutes' => $bookedMinutes, 'available_minutes' => $availableMinutes];
     }
 
     private function patientDashboard(User $user): View
@@ -180,9 +252,13 @@ class DashboardController extends Controller
             ->orderBy('start_at')->get();
         $todaysMissed = $todays->where('status', Appointment::STATUS_NO_SHOW);
 
+        // A satisfied patient's shareable referral link (PRD "turning
+        // patients into a referral channel").
+        $referral = app(\App\Services\RetentionService::class)->referralLinkFor($user);
+
         return view('dashboard.patient', compact(
             'user', 'upcoming', 'past', 'stats', 'attendanceRate',
-            'trendLabels', 'trendData', 'todays', 'todaysMissed'
+            'trendLabels', 'trendData', 'todays', 'todaysMissed', 'referral'
         ));
     }
 }

@@ -151,7 +151,7 @@ class AppointmentNotificationService
         if ($cfg['whatsapp']) {
             // Status messages need their own approved template (do not fall back
             // to the reminder template — its variables differ).
-            $section = WhatsappTemplate::forEvent('status_update', false);
+            $section = WhatsappTemplate::forEvent($appointment->clinic_id, 'status_update', false);
             if ($section && $section['template_id']) {
                 $params = WhatsappTemplate::resolveParams(
                     $section['variables'],
@@ -216,7 +216,7 @@ class AppointmentNotificationService
                 $result['whatsapp'] = (bool) app(FlowEngine::class)->start($flow, $appointment);
             } else {
                 // Reschedule has its own approved template (do not fall back).
-                $section = WhatsappTemplate::forEvent('reschedule', false);
+                $section = WhatsappTemplate::forEvent($appointment->clinic_id, 'reschedule', false);
                 if ($section && $section['template_id']) {
                     $params = WhatsappTemplate::resolveParams(
                         $section['variables'],
@@ -260,7 +260,7 @@ class AppointmentNotificationService
         );
 
         // WhatsApp uses the approved "missed" template (no fallback).
-        $section = WhatsappTemplate::forEvent('missed', false);
+        $section = WhatsappTemplate::forEvent($appointment->clinic_id, 'missed', false);
         if ($section && $section['template_id']) {
             $params = WhatsappTemplate::resolveParams(
                 $section['variables'],
@@ -321,7 +321,7 @@ class AppointmentNotificationService
 
     private function sendWhatsappReminder(Appointment $appointment): bool
     {
-        $section = WhatsappTemplate::forEvent('appointment');
+        $section = WhatsappTemplate::forEvent($appointment->clinic_id, 'appointment');
         if (! $section || ! $section['template_id']) {
             return false;
         }
@@ -337,12 +337,18 @@ class AppointmentNotificationService
         );
     }
 
+    /** " (for Dad)" when this booking was made on behalf of someone else, else "". */
+    private function forSuffix(Appointment $appointment): string
+    {
+        return $appointment->booked_for_name ? ' (for '.$appointment->booked_for_name.')' : '';
+    }
+
     private function statusEmailBody(Appointment $appointment): string
     {
         return implode("\n", [
             'Hi '.$appointment->patient->name.',',
             '',
-            'Your appointment with '.$appointment->provider->name
+            'Your appointment'.$this->forSuffix($appointment).' with '.$appointment->provider->name
                 .' on '.$appointment->start_at->format('l, F j, Y \a\t g:i A')
                 .' is now: '.$appointment->status_label.'.',
             '',
@@ -355,7 +361,7 @@ class AppointmentNotificationService
         return implode("\n", [
             'Hi '.$appointment->patient->name.',',
             '',
-            'Your appointment'
+            'Your appointment'.$this->forSuffix($appointment)
                 .($appointment->clinic ? ' at '.$appointment->clinic->name : '')
                 .' has been rescheduled. New date: '
                 .$appointment->start_at->format('l, F j, Y \a\t g:i A')
@@ -370,7 +376,7 @@ class AppointmentNotificationService
         return implode("\n", [
             'Hi '.$appointment->patient->name.',',
             '',
-            'Seems like you didn\'t come in the appointed time on '
+            'Seems like'.($appointment->booked_for_name ? ' '.$appointment->booked_for_name : ' you').' didn\'t come in for the appointed time on '
                 .$appointment->start_at->format('l, F j, Y \a\t g:i A')
                 .($appointment->provider ? ' with '.$appointment->provider->name : '').'.',
             '',
@@ -383,7 +389,7 @@ class AppointmentNotificationService
         return implode("\n", [
             'Hi '.$appointment->patient->name.',',
             '',
-            'This is a reminder for your appointment'
+            'This is a reminder for'.($appointment->booked_for_name ? " {$appointment->booked_for_name}'s appointment" : ' your appointment')
                 .($appointment->clinic ? ' at '.$appointment->clinic->name : '')
                 .' with '.$appointment->provider->name
                 .' on '.$appointment->start_at->format('l, F j, Y \a\t g:i A').'.',

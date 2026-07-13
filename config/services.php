@@ -59,6 +59,7 @@ return [
 
     'messaging' => [
         'whatsapp_driver' => env('MESSAGING_WHATSAPP_DRIVER', 'log'), // log | gupshup
+        'sms_driver' => env('MESSAGING_SMS_DRIVER', 'log'), // log | gupshup
     ],
 
     'whatsapp' => [
@@ -78,14 +79,34 @@ return [
         'gupshup_webhook_secret' => env('GUPSHUP_WEBHOOK_SECRET'),
     ],
 
+    'sms' => [
+        // Reuses the same Gupshup account/API key as WhatsApp (one Gupshup
+        // account covers both channel products) — only the sender id and
+        // endpoint differ. Gupshup's SMS v1 API shape below follows the same
+        // apikey-header pattern as their WhatsApp API; verify against a live
+        // Gupshup dashboard/sandbox if a real send ever looks wrong, same
+        // caveat as the WhatsApp integration.
+        'gupshup_api_key' => env('GUPSHUP_SMS_API_KEY', env('GUPSHUP_API_KEY')),
+        'gupshup_source' => env('GUPSHUP_SMS_SOURCE'), // approved SMS sender id/number
+        // Shared secret for the inbound SMS webhook (webhooks.sms-inbound) and
+        // the missed-call text-back webhook (webhooks.missed-call) — both are
+        // server-to-server calls with no session, same pattern as Gupshup's
+        // WhatsApp webhook.
+        'inbound_webhook_secret' => env('SMS_INBOUND_WEBHOOK_SECRET'),
+        'missed_call_webhook_secret' => env('MISSED_CALL_WEBHOOK_SECRET'),
+    ],
+
     'telehealth' => [
         'driver' => env('TELEHEALTH_DRIVER', 'jitsi'), // jitsi | zoom | twilio | daily
     ],
 
     'payments' => [
-        'driver' => env('PAYMENTS_DRIVER', 'manual'), // manual | stripe
-        'stripe_key' => env('STRIPE_KEY'),
-        'stripe_secret' => env('STRIPE_SECRET'),
+        'driver' => env('PAYMENTS_DRIVER', 'manual'), // manual | razorpay
+        'razorpay_key_id' => env('RAZORPAY_KEY_ID'),
+        'razorpay_key_secret' => env('RAZORPAY_KEY_SECRET'),
+        // Signing secret Razorpay shows for the webhooks/razorpay endpoint once
+        // it's registered in the Razorpay dashboard.
+        'razorpay_webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
     ],
 
 ];

@@ -7,6 +7,7 @@ use App\Http\Controllers\AppointmentNotificationController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\PhoneAuthController;
 use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CalendarController;
@@ -37,6 +38,12 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('register', [AuthController::class, 'register']);
+
+    // Phone + OTP login (no password) — parallel path, existing login untouched.
+    Route::get('login/phone', [PhoneAuthController::class, 'showRequest'])->name('login.phone');
+    Route::post('login/phone', [PhoneAuthController::class, 'sendCode'])->middleware('throttle:5,1')->name('login.phone.send');
+    Route::get('login/phone/verify', [PhoneAuthController::class, 'showVerify'])->name('login.phone.verify');
+    Route::post('login/phone/verify', [PhoneAuthController::class, 'verifyCode'])->middleware('throttle:10,1')->name('login.phone.verify.submit');
 });
 
 Route::post('logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -46,9 +53,28 @@ Route::get('r/{token}/confirm', [ReminderActionController::class, 'confirm'])->n
 Route::get('r/{token}/cancel', [ReminderActionController::class, 'cancel'])->name('reminder.cancel');
 Route::get('r/{token}/reschedule', [ReminderActionController::class, 'reschedule'])->name('reminder.reschedule');
 
+// --- Referral redemption (token-authenticated, no login needed to view) ----
+Route::get('ref/{token}', [\App\Http\Controllers\ReferralController::class, 'show'])->name('referral.redeem');
+
+// --- QR code redemption + image (public, token-authenticated) --------------
+Route::get('qr/{token}', [\App\Http\Controllers\QrCodeController::class, 'redeem'])->name('qrcodes.redeem');
+Route::get('qr/{token}/image', [\App\Http\Controllers\QrCodeController::class, 'image'])->name('qrcodes.image');
+
 // --- Inbound Gupshup webhook (public, shared-secret authenticated) ---------
 Route::post('webhooks/gupshup', [\App\Http\Controllers\Webhooks\GupshupWebhookController::class, 'handle'])
     ->name('webhooks.gupshup');
+
+// --- Inbound Razorpay webhook (public, signature authenticated) ------------
+Route::post('webhooks/razorpay', [\App\Http\Controllers\Webhooks\RazorpayWebhookController::class, 'handle'])
+    ->name('webhooks.razorpay');
+
+// --- Inbound SMS webhook (public, shared-secret authenticated) -------------
+Route::post('webhooks/sms-inbound', [\App\Http\Controllers\Webhooks\SmsInboundWebhookController::class, 'handle'])
+    ->name('webhooks.sms-inbound');
+
+// --- Missed-call text-back webhook (public, shared-secret authenticated) ---
+Route::post('webhooks/missed-call', [\App\Http\Controllers\Webhooks\MissedCallWebhookController::class, 'handle'])
+    ->name('webhooks.missed-call');
 
 // --- Authenticated ---------------------------------------------------------
 Route::middleware('auth')->group(function () {
@@ -108,8 +134,13 @@ Route::middleware('auth')->group(function () {
     // Appointments
     Route::middleware('can:view appointments')->group(function () {
         Route::get('appointments', [AppointmentController::class, 'index'])->name('appointments.index');
-        Route::get('appointments/export.csv', [ExportController::class, 'appointmentsCsv'])->name('appointments.export');
         Route::get('appointments/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show');
+        Route::get('appointments/{appointment}/reschedule-suggestions', [AppointmentController::class, 'rescheduleSuggestions'])->name('appointments.reschedule-suggestions');
+    });
+    // Bulk patient-data export is restricted to owners/managers, not every
+    // role that can merely view appointments (front-desk included).
+    Route::middleware('can:export patient data')->group(function () {
+        Route::get('appointments/export.csv', [ExportController::class, 'appointmentsCsv'])->name('appointments.export');
     });
     Route::middleware('can:manage appointments')->group(function () {
         // Appointment Notifications settings (lead-time + status-change messages)
@@ -132,10 +163,24 @@ Route::middleware('auth')->group(function () {
         Route::delete('waitlist/{waitlist}', [WaitlistController::class, 'destroy'])->name('waitlist.destroy');
     });
 
+    // Walk-in queue
+    Route::middleware('can:manage walk_in_queue')->group(function () {
+        Route::get('walkins', [\App\Http\Controllers\WalkInQueueController::class, 'index'])->name('walkins.index');
+        Route::post('walkins', [\App\Http\Controllers\WalkInQueueController::class, 'store'])->name('walkins.store');
+        Route::patch('walkins/{walkin}/status', [\App\Http\Controllers\WalkInQueueController::class, 'updateStatus'])->name('walkins.status');
+        Route::delete('walkins/{walkin}', [\App\Http\Controllers\WalkInQueueController::class, 'destroy'])->name('walkins.destroy');
+    });
+
     // Patients
     Route::middleware('can:manage patients')->group(function () {
         Route::resource('patients', PatientController::class)->except('show');
         Route::get('patients/{patient}', [PatientController::class, 'show'])->name('patients.show');
+        Route::get('referrals', [\App\Http\Controllers\ReferralController::class, 'index'])->name('referrals.index');
+
+        // Referral letters / consent forms / visit recaps — draft, edit, approve+send
+        Route::post('appointments/{appointment}/documents', [\App\Http\Controllers\PatientDocumentController::class, 'store'])->name('appointments.documents.store');
+        Route::patch('documents/{document}', [\App\Http\Controllers\PatientDocumentController::class, 'update'])->name('documents.update');
+        Route::post('documents/{document}/approve', [\App\Http\Controllers\PatientDocumentController::class, 'approve'])->name('documents.approve');
     });
 
     // Providers + availability management
@@ -150,6 +195,11 @@ Route::middleware('auth')->group(function () {
     // Services
     Route::middleware('can:manage services')->group(function () {
         Route::resource('services', ServiceController::class)->except('show');
+
+        // QR-code booking attribution — service-adjacent admin task, reuses this permission.
+        Route::get('qrcodes', [\App\Http\Controllers\QrCodeController::class, 'index'])->name('qrcodes.index');
+        Route::post('qrcodes', [\App\Http\Controllers\QrCodeController::class, 'store'])->name('qrcodes.store');
+        Route::delete('qrcodes/{qrcode}', [\App\Http\Controllers\QrCodeController::class, 'destroy'])->name('qrcodes.destroy');
     });
 
     // Reports + reviews/feedback
@@ -163,6 +213,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:view billing')->group(function () {
         Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('payments/{payment}/refund', [PaymentController::class, 'refund'])->name('payments.refund');
+        Route::post('payments/{payment}/confirm-deposit', [PaymentController::class, 'confirmDeposit'])->name('payments.confirm-deposit');
     });
 
     // Broadcast messaging

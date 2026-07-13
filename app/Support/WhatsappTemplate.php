@@ -44,6 +44,9 @@ class WhatsappTemplate
         'timing_check' => 'Timing check (Yes/No)',
         'reschedule_yes_confirm' => 'Reschedule confirmed (Yes)',
         'reschedule_no_confirm' => 'Reschedule — new time requested (No)',
+        'recall' => 'Recall — overdue follow-up',
+        'care_gap' => 'Care-gap outreach',
+        'review_request' => 'Review request',
     ];
 
     /**
@@ -101,13 +104,14 @@ class WhatsappTemplate
     // --- Persistence -------------------------------------------------------
 
     /**
-     * All configured sections (saved set, or the seeded defaults the first time).
+     * All configured sections for a clinic (saved set, or the seeded defaults
+     * the first time) — each clinic has its own Gupshup account and template ids.
      *
      * @return array<int, array{event: string, label: string, template_id: ?string, namespace: ?string, body: string, variables: array<int, string>}>
      */
-    public static function sections(): array
+    public static function sections(int $clinicId): array
     {
-        $raw = Setting::get(self::SETTING_KEY);
+        $raw = Setting::getForClinic($clinicId, self::SETTING_KEY);
 
         if ($raw) {
             $decoded = json_decode($raw, true);
@@ -127,9 +131,9 @@ class WhatsappTemplate
      *
      * @return array<int, array{event: string, label: string, template_id: ?string, namespace: ?string, body: string, variables: array<int, string>}>
      */
-    public static function sectionsForEditing(): array
+    public static function sectionsForEditing(int $clinicId): array
     {
-        $sections = self::sections();
+        $sections = self::sections($clinicId);
         $present = array_column($sections, 'event');
         $defaults = [];
         foreach (self::defaults() as $d) {
@@ -150,7 +154,7 @@ class WhatsappTemplate
      *
      * @param  array<int, array<string, mixed>>  $sections
      */
-    public static function save(array $sections): void
+    public static function save(int $clinicId, array $sections): void
     {
         $clean = [];
         foreach ($sections as $section) {
@@ -165,7 +169,7 @@ class WhatsappTemplate
             $clean[] = $section;
         }
 
-        Setting::set(self::SETTING_KEY, json_encode(array_values($clean)), 'whatsapp');
+        Setting::setForClinic($clinicId, self::SETTING_KEY, json_encode(array_values($clean)), 'whatsapp');
     }
 
     /**
@@ -175,9 +179,9 @@ class WhatsappTemplate
      *
      * @param  array<string, mixed>  $data  template_id / namespace / body / variables
      */
-    public static function saveSection(string $event, array $data): void
+    public static function saveSection(int $clinicId, string $event, array $data): void
     {
-        $sections = self::sectionsForEditing();
+        $sections = self::sectionsForEditing($clinicId);
         $data['event'] = $event;
         $replaced = false;
 
@@ -194,7 +198,7 @@ class WhatsappTemplate
             $sections[] = self::normalize($data);
         }
 
-        self::save($sections);
+        self::save($clinicId, $sections);
     }
 
     /**
@@ -238,9 +242,9 @@ class WhatsappTemplate
      *
      * @return array{event: string, label: string, template_id: ?string, namespace: ?string, body: string, variables: array<int, string>}|null
      */
-    public static function forEvent(string $event, bool $fallback = true): ?array
+    public static function forEvent(int $clinicId, string $event, bool $fallback = true): ?array
     {
-        $sections = self::sections();
+        $sections = self::sections($clinicId);
 
         foreach ($sections as $section) {
             if ($section['event'] === $event && $section['template_id']) {
@@ -249,7 +253,7 @@ class WhatsappTemplate
         }
 
         if ($fallback && $event !== self::FALLBACK_EVENT) {
-            return self::forEvent(self::FALLBACK_EVENT, false);
+            return self::forEvent($clinicId, self::FALLBACK_EVENT, false);
         }
 
         return null;
@@ -426,6 +430,30 @@ class WhatsappTemplate
                 'namespace' => null,
                 'body' => 'What date and time would work best for you?',
                 'variables' => [],
+            ],
+            [
+                'event' => 'recall',
+                'label' => 'Recall — overdue follow-up',
+                'template_id' => null,
+                'namespace' => null,
+                'body' => 'Hi {{1}}, it\'s been a little while since your {{2}} visit at {{3}}. Your provider recommended a follow-up — book yours whenever works for you.',
+                'variables' => ['patient_name', 'service_name', 'clinic_name'],
+            ],
+            [
+                'event' => 'care_gap',
+                'label' => 'Care-gap outreach',
+                'template_id' => null,
+                'namespace' => null,
+                'body' => 'Hi {{1}}, your {{2}} plan at {{3}} calls for regular visits and it looks like you\'re due for one. Let\'s get you back on track — book when you\'re ready.',
+                'variables' => ['patient_name', 'service_name', 'clinic_name'],
+            ],
+            [
+                'event' => 'review_request',
+                'label' => 'Review request',
+                'template_id' => null,
+                'namespace' => null,
+                'body' => 'Hi {{1}}, thanks for visiting {{2}}! If you have a moment, we\'d really appreciate a quick review of your visit.',
+                'variables' => ['patient_name', 'clinic_name'],
             ],
         ];
     }

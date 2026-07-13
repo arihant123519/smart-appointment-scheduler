@@ -37,11 +37,18 @@ class ReportFunnelMetricsTest extends TestCase
         $admin = User::factory()->create(['clinic_id' => $clinic->id]);
         $admin->syncRoles('clinic_admin');
 
-        $make = fn (string $status) => Appointment::create([
-            'patient_id' => $patient->id, 'provider_id' => $provider->id, 'clinic_id' => $clinic->id,
-            'start_at' => now()->subDays(2), 'end_at' => now()->subDays(2)->addMinutes(30),
-            'status' => $status, 'channel' => 'web',
-        ]);
+        // Distinct start times — one provider can't hold three simultaneous
+        // appointments, so each status gets its own slot on the same day.
+        $slot = 0;
+        $make = function (string $status) use (&$slot, $patient, $provider, $clinic) {
+            $start = now()->subDays(2)->addMinutes(30 * $slot++);
+
+            return Appointment::create([
+                'patient_id' => $patient->id, 'provider_id' => $provider->id, 'clinic_id' => $clinic->id,
+                'start_at' => $start, 'end_at' => (clone $start)->addMinutes(30),
+                'status' => $status, 'channel' => 'web',
+            ]);
+        };
 
         $completed = $make(Appointment::STATUS_COMPLETED);
         $cancelled = $make(Appointment::STATUS_CANCELLED);

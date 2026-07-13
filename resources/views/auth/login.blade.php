@@ -28,6 +28,7 @@
       <button type="submit" class="btn btn-primary w-100">Login</button>
     </div>
     <p class="mb-0 text-center">Don't have an account? <a href="{{ route('register') }}">Sign Up</a></p>
+    <p class="mb-0 text-center mt-2"><a href="{{ route('login.phone') }}">Log in with phone instead</a></p>
   </form>
 
   <div class="alert alert-light border mt-4 mb-0 small">

@@ -17,12 +17,18 @@ class Service extends Model
     protected $fillable = [
         'clinic_id', 'name', 'specialty', 'duration', 'buffer',
         'price', 'color', 'telehealth', 'is_active',
+        'recall_window_days', 'recall_cadence_days',
+        'deposit_required', 'deposit_amount', 'deposit_forfeit_hours',
+        'overbooking_enabled', 'overbooking_margin',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'telehealth' => 'boolean',
         'is_active' => 'boolean',
+        'deposit_required' => 'boolean',
+        'deposit_amount' => 'decimal:2',
+        'overbooking_enabled' => 'boolean',
     ];
 
     public function clinic(): BelongsTo

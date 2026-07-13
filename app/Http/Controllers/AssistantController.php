@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Provider;
+use App\Models\Referral;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use App\Services\AI\AiService;
+use App\Services\PatientScoringService;
+use App\Services\RevenueLeakService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -44,6 +48,9 @@ class AssistantController extends Controller
 
             ['key' => 'patients.index', 'label' => 'Patients List', 'route' => 'patients.index', 'permission' => 'manage patients', 'keywords' => ['patients', 'patient list']],
             ['key' => 'patients.create', 'label' => 'New Patient', 'route' => 'patients.create', 'permission' => 'manage patients', 'keywords' => ['new patient', 'create patient', 'add patient', 'register patient']],
+            ['key' => 'referrals.index', 'label' => 'Referrals', 'route' => 'referrals.index', 'permission' => 'manage patients', 'keywords' => ['referral', 'referrals', 'refer a friend', 'referral program']],
+            ['key' => 'walkins.index', 'label' => 'Walk-in Queue', 'route' => 'walkins.index', 'permission' => 'manage walk_in_queue', 'keywords' => ['walk-in', 'walkin', 'walk in', 'queue']],
+            ['key' => 'qrcodes.index', 'label' => 'QR Booking Codes', 'route' => 'qrcodes.index', 'permission' => 'manage services', 'keywords' => ['qr code', 'qr codes', 'scan to book']],
             ['key' => 'providers.index', 'label' => 'Providers List', 'route' => 'providers.index', 'permission' => 'manage providers', 'keywords' => ['providers', 'doctors', 'staff']],
             ['key' => 'providers.create', 'label' => 'New Provider', 'route' => 'providers.create', 'permission' => 'manage providers', 'keywords' => ['new provider', 'create provider', 'add doctor']],
             ['key' => 'services.index', 'label' => 'Services', 'route' => 'services.index', 'permission' => 'manage services', 'keywords' => ['services', 'service catalog', 'appointment types']],
@@ -82,10 +89,23 @@ class AssistantController extends Controller
     private function queryTypes(): array
     {
         $types = [];
-        if (auth()->user()->can('view appointments')) {
+        $user = auth()->user();
+
+        if ($user->can('view appointments')) {
             $types[] = ['type' => 'provider_appointments', 'description' => "appointments of a specific provider/doctor by name"];
             $types[] = ['type' => 'patient_appointments', 'description' => "appointments/visits of a specific patient/client by name"];
             $types[] = ['type' => 'patient_visit_count', 'description' => "how many times a patient/client has visited the clinic"];
+        }
+        if ($user->can('manage patients')) {
+            $types[] = ['type' => 'patient_value_score', 'description' => "a specific patient's loyalty/value score and why (visit frequency, reliability, referrals)"];
+            $types[] = ['type' => 'referral_stats', 'description' => "referral program performance — total referrals, conversion rate, top referrers"];
+        }
+        if ($user->can('manage waitlist')) {
+            $types[] = ['type' => 'waitlist_next', 'description' => "who is next on the waitlist and why they're prioritized"];
+        }
+        if ($user->can('view reports')) {
+            $types[] = ['type' => 'revenue_leak', 'description' => "revenue-leak patterns — high-cancellation slots, under-booked services, high-no-show channels"];
+            $types[] = ['type' => 'fill_rate', 'description' => "the clinic's schedule fill rate over the last 30 days"];
         }
 
         return $types;
@@ -108,7 +128,7 @@ class AssistantController extends Controller
             'key' => $d['key'], 'label' => $d['label'], 'keywords' => $d['keywords'],
         ], $permitted);
 
-        $result = $ai->assistantCommand($data['text'], $slim, $this->queryTypes());
+        $result = $ai->assistantCommand($data['text'], $slim, $this->queryTypes(), auth()->user()?->clinic_id);
 
         // --- Data query → run it and answer in chat (no auto-redirect) --------
         if (($result['action'] ?? null) === 'query') {
@@ -251,16 +271,31 @@ class AssistantController extends Controller
             return ['reply' => "You don't have permission to view that information.", 'url' => null, 'label' => null];
         }
 
+        $type = $query['type'] ?? null;
+
+        // Clinic-wide questions — no person name involved, so skip the
+        // name-required branch below entirely.
+        if (in_array($type, ['fill_rate', 'revenue_leak', 'waitlist_next', 'referral_stats'], true)) {
+            return match ($type) {
+                'fill_rate' => $this->fillRateAnswer(),
+                'revenue_leak' => $this->revenueLeakAnswer(),
+                'waitlist_next' => $this->waitlistNextAnswer(),
+                'referral_stats' => $this->referralStatsAnswer(),
+                default => ['reply' => "I couldn't run that query.", 'url' => null, 'label' => null],
+            };
+        }
+
         $name = trim((string) ($query['name'] ?? ''));
         if ($name === '') {
             return ['reply' => 'Whose record would you like to see? Please include a name.', 'url' => null, 'label' => null];
         }
         $range = $query['range'] ?? 'all';
 
-        return match ($query['type'] ?? null) {
+        return match ($type) {
             'provider_appointments' => $this->providerAppointments($name, $range),
             'patient_appointments' => $this->patientAppointments($name, $range),
             'patient_visit_count' => $this->patientVisitCount($name),
+            'patient_value_score' => $this->patientValueScore($name),
             default => ['reply' => "I couldn't run that query.", 'url' => null, 'label' => null],
         };
     }
@@ -338,6 +373,98 @@ class AssistantController extends Controller
             'url' => route('appointments.index', ['q' => $patient->name]),
             'label' => 'their appointments',
         ];
+    }
+
+    private function patientValueScore(string $name): array
+    {
+        $patient = $this->findPatient($name);
+        if (is_array($patient)) {
+            return $patient;
+        }
+
+        $result = app(PatientScoringService::class)->scoreWithReason($patient);
+
+        return [
+            'reply' => "{$patient->name}'s patient-value score is {$result['score']}/100. {$result['reason']}",
+            'url' => route('patients.show', $patient),
+            'label' => 'their profile',
+        ];
+    }
+
+    private function waitlistNextAnswer(): array
+    {
+        $query = WaitlistEntry::with('patient')->where('status', 'waiting');
+        if ($clinic = auth()->user()->clinic_id) {
+            $query->where('clinic_id', $clinic);
+        }
+        $entry = $query->orderByDesc('priority')->orderBy('created_at')->first();
+
+        if (! $entry || ! $entry->patient) {
+            return ['reply' => 'The waitlist is currently empty.', 'url' => route('waitlist.index'), 'label' => 'the waitlist'];
+        }
+
+        $reason = app(PatientScoringService::class)->scoreWithReason($entry->patient)['reason'];
+
+        return [
+            'reply' => "Next on the waitlist is {$entry->patient->name} (priority {$entry->priority}). {$reason}",
+            'url' => route('waitlist.index'),
+            'label' => 'the waitlist',
+        ];
+    }
+
+    private function revenueLeakAnswer(): array
+    {
+        $flags = app(RevenueLeakService::class)->detect();
+
+        if (empty($flags)) {
+            return ['reply' => "No revenue-leak patterns flagged right now — nothing stands out over the last 30 days.", 'url' => route('reports.index'), 'label' => 'reports'];
+        }
+
+        $top = array_slice($flags, 0, 3);
+        $summary = implode(' ', array_map(fn ($f) => $f['title'].'.', $top));
+        $more = count($flags) > 3 ? ' ('.(count($flags) - 3).' more on the Reports page.)' : '';
+
+        return [
+            'reply' => "{$summary}{$more}",
+            'url' => route('reports.index'),
+            'label' => 'the full breakdown',
+        ];
+    }
+
+    private function fillRateAnswer(): array
+    {
+        $fill = app(DashboardController::class)->fillRateStats(today()->subDays(29), today());
+
+        return [
+            'reply' => "Schedule fill rate over the last 30 days is {$fill['rate']}% ({$fill['booked_minutes']} of {$fill['available_minutes']} available minutes booked).",
+            'url' => route('dashboard'),
+            'label' => 'the dashboard',
+        ];
+    }
+
+    private function referralStatsAnswer(): array
+    {
+        $referrals = Referral::forCurrentClinic()->get();
+        $total = $referrals->count();
+        $booked = $referrals->where('status', 'booked')->count();
+
+        if ($total === 0) {
+            return ['reply' => 'No referrals recorded yet.', 'url' => route('referrals.index'), 'label' => 'referrals'];
+        }
+
+        $rate = round($booked / $total * 100, 1);
+        $topReferrer = $referrals->whereNotNull('referrer_patient_id')
+            ->where('status', 'booked')
+            ->groupBy('referrer_patient_id')
+            ->sortByDesc(fn ($group) => $group->count())
+            ->first();
+
+        $reply = "{$total} referral(s) so far, {$booked} converted to a booking ({$rate}% conversion).";
+        if ($topReferrer && $topReferrer->first()->referrerPatient) {
+            $reply .= ' Top referrer: '.$topReferrer->first()->referrerPatient->name.' ('.$topReferrer->count().' converted).';
+        }
+
+        return ['reply' => $reply, 'url' => route('referrals.index'), 'label' => 'referrals'];
     }
 
     /** Resolve a patient by name within the current clinic, or return a message array. */

@@ -93,17 +93,40 @@ class SchedulingService
             $duration = $service?->duration ?? $provider->default_slot_minutes;
             $end = isset($data['end_at']) ? Carbon::parse($data['end_at']) : $start->copy()->addMinutes($duration);
 
-            // Lock this provider's overlapping rows for the duration of the tx.
-            $conflict = Appointment::where('provider_id', $provider->id)
+            // Any overlap at a DIFFERENT start time is always a hard conflict —
+            // controlled overbooking only ever adds capacity at the EXACT same
+            // start_at (see below), never to genuinely different time ranges.
+            $overlapConflict = Appointment::where('provider_id', $provider->id)
                 ->active()
+                ->where('start_at', '!=', $start)
                 ->where('start_at', '<', $end)
                 ->where('end_at', '>', $start)
                 ->lockForUpdate()
                 ->exists();
 
-            if ($conflict) {
+            if ($overlapConflict) {
                 throw new RuntimeException('This time slot is no longer available for the selected provider.');
             }
+
+            // Existing bookings at this EXACT slot, locked so two concurrent
+            // booking attempts can't both slip in under the same capacity —
+            // this is what keeps the capacity check race-safe. Capacity is 1
+            // (the original double-booking guarantee, untouched) unless the
+            // service has explicitly opted into overbooking for a slot with a
+            // demonstrated high no-show rate (see capacityFor()).
+            $exactSlotCount = Appointment::where('provider_id', $provider->id)
+                ->where('start_at', $start)
+                ->active()
+                ->lockForUpdate()
+                ->count();
+
+            $capacity = $this->capacityFor($service, $start);
+
+            if ($exactSlotCount >= $capacity) {
+                throw new RuntimeException('This time slot is no longer available for the selected provider.');
+            }
+
+            $overbookSlot = $exactSlotCount; // 0 = the normal, guaranteed booking; 1+ = overbooked
 
             // Optional resource conflict check.
             if (! empty($data['resource_id'])) {
@@ -129,12 +152,16 @@ class SchedulingService
                 'resource_id' => $data['resource_id'] ?? null,
                 'start_at' => $start,
                 'end_at' => $end,
+                'overbook_slot' => $overbookSlot,
                 'status' => $data['status'] ?? Appointment::STATUS_BOOKED,
                 'channel' => $data['channel'] ?? 'web',
+                'source' => $data['source'] ?? null,
                 'recurring_group' => $data['recurring_group'] ?? null,
                 'is_telehealth' => $isTelehealth,
                 'reason' => $data['reason'] ?? null,
                 'notes' => $data['notes'] ?? null,
+                'booked_for_name' => $data['booked_for_name'] ?? null,
+                'booked_for_relationship' => $data['booked_for_relationship'] ?? null,
                 'no_show_score' => $data['no_show_score'] ?? app(NoShowPredictor::class)->score($data),
                 'created_by' => auth()->id(),
             ]);
@@ -145,6 +172,24 @@ class SchedulingService
 
             return $appointment;
         });
+    }
+
+    /**
+     * Normal capacity is 1 — the untouched double-booking guarantee. A
+     * service can opt into a small explicit overbooking margin, but it only
+     * ever actually applies to a slot with a demonstrated high no-show rate
+     * (never applied broadly, never without the clinic's explicit sign-off
+     * via Service::overbooking_enabled).
+     */
+    private function capacityFor(?Service $service, Carbon $start): int
+    {
+        if (! $service || ! $service->overbooking_enabled || $service->overbooking_margin < 1) {
+            return 1;
+        }
+
+        $noShowRate = app(SlotScoringService::class)->noShowRateFor($service, $start);
+
+        return $noShowRate >= 0.25 ? 1 + $service->overbooking_margin : 1;
     }
 
     /**

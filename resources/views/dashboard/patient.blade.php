@@ -128,6 +128,21 @@
     </div>
   </div>
 
+  {{-- Referral link --}}
+  <div class="card sas-card-soft mb-4">
+    <div class="card-body d-flex flex-wrap align-items-center gap-3">
+      <div class="sas-stat__ico bg-primary-subtle text-primary"><i class="fi fi-rr-share"></i></div>
+      <div class="flex-grow-1">
+        <div class="fw-semibold">Know someone who'd like it here?</div>
+        <div class="text-muted small">Share your link — when they book their first visit, we'll know it was you.</div>
+      </div>
+      <div class="input-group" style="max-width: 380px;">
+        <input type="text" class="form-control form-control-sm" id="referralLinkInput" value="{{ $referral->share_url }}" readonly>
+        <button class="btn btn-sm btn-outline-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('referralLinkInput').value); this.innerText='Copied!'; setTimeout(() => this.innerText='Copy', 1500);">Copy</button>
+      </div>
+    </div>
+  </div>
+
   {{-- Past visits --}}
   <div class="card sas-card-soft">
     <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0"><i class="fi fi-rr-time-past text-secondary me-1"></i> Past visits</h6></div>

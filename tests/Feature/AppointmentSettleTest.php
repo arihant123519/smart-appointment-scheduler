@@ -25,6 +25,10 @@ class AppointmentSettleTest extends TestCase
 
     private int $patientId;
 
+    // One provider can't hold two simultaneous appointments — each call to
+    // appt() gets its own slot, staggered by this counter.
+    private int $slot = 0;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -48,6 +52,7 @@ class AppointmentSettleTest extends TestCase
     private function appt(string $status, string $when): Appointment
     {
         $start = $when === 'past' ? now()->subDays(2) : now()->addDays(2);
+        $start = $start->addMinutes(30 * $this->slot++);
 
         return Appointment::create([
             'patient_id' => $this->patientId,

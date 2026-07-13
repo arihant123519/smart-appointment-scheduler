@@ -9,7 +9,9 @@ use App\Models\Resource;
 use App\Models\Service;
 use App\Models\User;
 use App\Services\AppointmentNotificationService;
+use App\Services\PaymentService;
 use App\Services\ReminderService;
+use App\Services\RescheduleSuggestionService;
 use App\Services\SchedulingService;
 use App\Services\WaitlistService;
 use Carbon\Carbon;
@@ -124,9 +126,15 @@ class AppointmentController extends Controller
 
     public function show(Appointment $appointment): View
     {
-        $appointment->load(['patient', 'provider.user', 'service', 'resource', 'clinic', 'reminders', 'payment', 'intakeForm']);
+        $appointment->load(['patient', 'provider.user', 'service', 'resource', 'clinic', 'reminders', 'payment', 'intakeForm', 'documents']);
 
         return view('appointments.show', compact('appointment'));
+    }
+
+    /** Personalized reschedule suggestions (AJAX, PRD "smarter rescheduling suggestions"). */
+    public function rescheduleSuggestions(Appointment $appointment, RescheduleSuggestionService $suggestions): JsonResponse
+    {
+        return response()->json(['slots' => $suggestions->suggestFor($appointment)]);
     }
 
     public function edit(Appointment $appointment): View
@@ -217,9 +225,12 @@ class AppointmentController extends Controller
         $notifications->notifyStatusChange($appointment);
         $notifications->syncLeadTimes($appointment);
 
-        // Freed slot? Auto-offer it to the smart waitlist.
+        // Freed slot? Auto-offer it to the smart waitlist, and apply the
+        // service's deposit policy (a no-show always forfeits; a cancellation
+        // forfeits only within the configured window before the visit).
         $offered = null;
         if (in_array($data['status'], [Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW], true)) {
+            app(PaymentService::class)->forfeitOrRefundDeposit($appointment, $data['status'] === Appointment::STATUS_NO_SHOW);
             $offered = app(WaitlistService::class)->offerFreedSlot($appointment);
         }
 

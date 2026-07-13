@@ -9,12 +9,13 @@ class Payment extends Model
 {
     protected $fillable = [
         'appointment_id', 'patient_id', 'amount', 'currency', 'type',
-        'method', 'provider_ref', 'status', 'paid_at',
+        'method', 'provider_ref', 'status', 'paid_at', 'expires_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     public function appointment(): BelongsTo
@@ -25,5 +26,16 @@ class Payment extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(User::class, 'patient_id');
+    }
+
+    public function scopeAbandonedDeposits($query)
+    {
+        return $query->where('type', 'deposit')->where('status', 'pending')
+            ->whereNotNull('expires_at')->where('expires_at', '<', now());
+    }
+
+    public function scopePendingDeposits($query)
+    {
+        return $query->where('type', 'deposit')->where('status', 'pending');
     }
 }

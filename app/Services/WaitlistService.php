@@ -12,6 +12,9 @@ use App\Support\WhatsappTemplate;
  *
  * When a slot frees up (cancellation / no-show), find the best-matched waiting
  * patient and auto-offer the freed slot, ranked by priority then wait time.
+ * `priority` defaults to a computed patient-value score (higher = more
+ * likely to actually take and keep the slot — see PatientScoringService) but
+ * staff can always override it manually when adding someone to the waitlist.
  */
 class WaitlistService
 {
@@ -37,7 +40,7 @@ class WaitlistService
                 $q->whereNull('latest_date')->orWhereDate('latest_date', '>=', $appointment->start_at);
             })
             ->with('patient')
-            ->orderBy('priority')        // 1 = highest
+            ->orderByDesc('priority')    // higher computed score = highest
             ->orderBy('created_at')      // then longest-waiting
             ->first();
 
@@ -49,7 +52,7 @@ class WaitlistService
 
         $channel = $candidate->patient->preferred_channel ?? 'email';
         $start = $appointment->start_at;
-        $section = WhatsappTemplate::forEvent('waitlist');
+        $section = $appointment->clinic_id ? WhatsappTemplate::forEvent($appointment->clinic_id, 'waitlist') : null;
 
         if ($channel === 'whatsapp' && $section && $section['template_id']) {
             // WhatsApp business-initiated messages need an approved template.

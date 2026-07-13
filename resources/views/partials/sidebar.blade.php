@@ -1,10 +1,11 @@
 @php
   $r = fn ($pattern) => request()->routeIs($pattern) ? 'active' : '';
+  $sasClinic = auth()->user()?->clinic;
 @endphp
 <aside class="sas-sidebar" id="sasSidebar">
   <a href="{{ route('dashboard') }}" class="sas-sidebar__brand">
-    <img src="{{ asset('assets/images/logo.svg') }}" alt="logo" onerror="this.style.display='none'">
-    <span>Scheduler</span>
+    <img src="{{ $sasClinic?->logo_url ?? asset('assets/images/logo.svg') }}" alt="logo" onerror="this.style.display='none'">
+    <span>{{ $sasClinic?->name ?? 'Scheduler' }}</span>
   </a>
 
   <nav class="sas-nav">
@@ -35,6 +36,11 @@
           <i class="fi fi-rr-list"></i> Waitlist
         </a>
       @endcan
+      @can('manage walk_in_queue')
+        <a href="{{ route('walkins.index') }}" class="sas-nav__link {{ $r('walkins.*') }}">
+          <i class="fi fi-rr-users"></i> Walk-in Queue
+        </a>
+      @endcan
       @can('manage reminders')
         <a href="{{ route('announcements.index') }}" class="sas-nav__link {{ $r('announcements.*') }}">
           <i class="fi fi-rr-megaphone"></i> Broadcast
@@ -53,6 +59,9 @@
         <a href="{{ route('patients.index') }}" class="sas-nav__link {{ $r('patients.*') }}">
           <i class="fi fi-rr-users"></i> Patients
         </a>
+        <a href="{{ route('referrals.index') }}" class="sas-nav__link {{ $r('referrals.*') }}">
+          <i class="fi fi-rr-share"></i> Referrals
+        </a>
       @endcan
       @can('manage providers')
         <a href="{{ route('providers.index') }}" class="sas-nav__link {{ $r('providers.*') }}">
@@ -62,6 +71,9 @@
       @can('manage services')
         <a href="{{ route('services.index') }}" class="sas-nav__link {{ $r('services.*') }}">
           <i class="fi fi-rr-symbol"></i> Services
+        </a>
+        <a href="{{ route('qrcodes.index') }}" class="sas-nav__link {{ $r('qrcodes.*') }}">
+          <i class="fi fi-rr-qrcode"></i> QR Codes
         </a>
       @endcan
     @endcanany

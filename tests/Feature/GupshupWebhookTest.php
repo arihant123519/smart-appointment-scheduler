@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Clinic;
 use App\Models\MessageLog;
 use App\Models\Provider;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappFlow;
@@ -35,9 +36,8 @@ class GupshupWebhookTest extends TestCase
         parent::setUp();
         $this->seed(RolePermissionSeeder::class);
 
-        config(['services.whatsapp.gupshup_webhook_secret' => 'test-secret']);
-
         $clinic = Clinic::create(['slug' => 'c', 'name' => 'Clinic', 'timezone' => 'UTC', 'is_active' => true]);
+        Setting::setForClinic($clinic->id, 'whatsapp.gupshup_webhook_secret', 'test-secret', 'whatsapp', true);
         $doctor = User::factory()->create(['clinic_id' => $clinic->id]);
         $doctor->syncRoles('provider');
         $provider = Provider::create([
@@ -100,7 +100,7 @@ class GupshupWebhookTest extends TestCase
     {
         // A WhatsApp template for the (non-flow) reschedule fallback path, so
         // the final notifyRescheduled() dual-channel send is fully exercised.
-        WhatsappTemplate::saveSection('reschedule', [
+        WhatsappTemplate::saveSection($this->appointment->clinic_id, 'reschedule', [
             'template_id' => 'wa-resched-tmpl',
             'variables' => ['patient_name'],
         ]);
@@ -205,7 +205,7 @@ class GupshupWebhookTest extends TestCase
 
     public function test_a_branch_nodes_own_question_can_use_an_approved_template_instead_of_plain_text(): void
     {
-        WhatsappTemplate::saveSection('confirmation', [
+        WhatsappTemplate::saveSection($this->appointment->clinic_id, 'confirmation', [
             'template_id' => 'wa-confirm-tmpl',
             'variables' => ['patient_name'],
         ]);

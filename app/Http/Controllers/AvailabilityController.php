@@ -5,18 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
 use App\Models\Provider;
+use App\Services\ScheduleOptimizationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AvailabilityController extends Controller
 {
-    public function edit(Provider $provider): View
+    public function edit(Provider $provider, ScheduleOptimizationService $optimization): View
     {
         $provider->load(['user', 'availabilities', 'exceptions' => fn ($q) => $q->orderBy('date')]);
         $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        $scheduleSuggestions = $optimization->suggestionsFor($provider);
 
-        return view('availability.edit', compact('provider', 'days'));
+        return view('availability.edit', compact('provider', 'days', 'scheduleSuggestions'));
     }
 
     /** Replace the provider's weekly working hours. */

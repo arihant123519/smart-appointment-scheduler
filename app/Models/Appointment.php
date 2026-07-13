@@ -32,10 +32,11 @@ class Appointment extends Model
 
     protected $fillable = [
         'patient_id', 'provider_id', 'clinic_id', 'service_id', 'resource_id',
-        'start_at', 'end_at', 'status', 'channel', 'no_show_score',
+        'start_at', 'end_at', 'overbook_slot', 'status', 'channel', 'source', 'no_show_score',
         'is_telehealth', 'telehealth_link', 'reason', 'notes',
         'confirmed_at', 'checked_in_at', 'cancelled_at', 'cancellation_reason',
-        'missed_notified_at', 'created_by',
+        'missed_notified_at', 'review_requested_at', 'created_by',
+        'booked_for_name', 'booked_for_relationship',
     ];
 
     protected $casts = [
@@ -45,7 +46,9 @@ class Appointment extends Model
         'checked_in_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'missed_notified_at' => 'datetime',
+        'review_requested_at' => 'datetime',
         'is_telehealth' => 'boolean',
+        'overbook_slot' => 'integer',
         'no_show_score' => 'integer',
     ];
 
@@ -69,6 +72,13 @@ class Appointment extends Model
             if ($appointment->wasChanged('status') && auth()->check()) {
                 app(\App\Services\ClinicDeskNotifier::class)
                     ->appointmentStatusChanged($appointment, auth()->user());
+            }
+
+            // A visit just finished — schedule follow-up recall / care-gap
+            // outreach. Bulk-updated completions (the settle command) don't
+            // reach this event; that path calls RetentionService directly.
+            if ($appointment->wasChanged('status') && $appointment->status === self::STATUS_COMPLETED) {
+                app(\App\Services\RetentionService::class)->scheduleForCompletedIds([$appointment->id]);
             }
         });
     }
@@ -108,9 +118,29 @@ class Appointment extends Model
         return $this->hasOne(Payment::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function recallNotices(): HasMany
+    {
+        return $this->hasMany(RecallNotice::class);
+    }
+
+    public function referral(): HasOne
+    {
+        return $this->hasOne(Referral::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(PatientDocument::class);
     }
 
     public function scopeUpcoming($query)
@@ -141,6 +171,18 @@ class Appointment extends Model
     }
 
     /**
+     * Completed visits ready for the post-visit review request: genuinely
+     * completed (never cancelled/no-show), not yet asked, and finished at
+     * least 2 hours ago — never while the patient is still at the clinic.
+     */
+    public function scopeDueForReviewRequest($query)
+    {
+        return $query->where('status', self::STATUS_COMPLETED)
+            ->whereNull('review_requested_at')
+            ->where('updated_at', '<=', now()->subHours(2));
+    }
+
+    /**
      * Auto-settle the status of past appointments that were never finalised:
      *   • booked / confirmed (patient never arrived)  → no_show
      *   • checked_in (arrived but not closed out)      → completed
@@ -149,22 +191,26 @@ class Appointment extends Model
      * Pass a base query to limit the scope (e.g. one patient or one clinic);
      * otherwise every clinic's overdue appointments are settled.
      *
-     * @return array{missed:int, completed:int}
+     * @return array{missed:int, completed:int, missed_ids: \Illuminate\Support\Collection, completed_ids: \Illuminate\Support\Collection}
      */
     public static function settleOverdue(?\Illuminate\Database\Eloquent\Builder $base = null): array
     {
         $base ??= static::query();
         $now = now();
 
-        $missed = (clone $base)->where('end_at', '<', $now)
-            ->whereIn('status', [self::STATUS_BOOKED, self::STATUS_CONFIRMED])
-            ->update(['status' => self::STATUS_NO_SHOW]);
+        // Bulk update() bypasses the booted() model event, so callers that need
+        // to react to newly-settled visits (retention outreach, deposit
+        // forfeiture) use these ids rather than relying on the event firing.
+        $missedQuery = (clone $base)->where('end_at', '<', $now)
+            ->whereIn('status', [self::STATUS_BOOKED, self::STATUS_CONFIRMED]);
+        $missedIds = (clone $missedQuery)->pluck('id');
+        $missed = $missedQuery->update(['status' => self::STATUS_NO_SHOW]);
 
-        $completed = (clone $base)->where('end_at', '<', $now)
-            ->where('status', self::STATUS_CHECKED_IN)
-            ->update(['status' => self::STATUS_COMPLETED]);
+        $completedQuery = (clone $base)->where('end_at', '<', $now)->where('status', self::STATUS_CHECKED_IN);
+        $completedIds = (clone $completedQuery)->pluck('id');
+        $completed = $completedQuery->update(['status' => self::STATUS_COMPLETED]);
 
-        return ['missed' => $missed, 'completed' => $completed];
+        return ['missed' => $missed, 'completed' => $completed, 'missed_ids' => $missedIds, 'completed_ids' => $completedIds];
     }
 
     public function getStatusLabelAttribute(): string
@@ -192,5 +238,10 @@ class Appointment extends Model
             $this->no_show_score >= 40 => 'medium',
             default => 'low',
         };
+    }
+
+    public function getIsOverbookedAttribute(): bool
+    {
+        return $this->overbook_slot > 0;
     }
 }

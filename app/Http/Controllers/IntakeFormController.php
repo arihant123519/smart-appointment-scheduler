@@ -14,6 +14,7 @@ class IntakeFormController extends Controller
 {
     /** Default pre-visit questionnaire. */
     public const SCHEMA = [
+        'main_question' => "What's the one thing you most want to ask or mention today?",
         'reason_for_visit' => 'Reason for visit',
         'symptoms' => 'Current symptoms',
         'medications' => 'Current medications',
@@ -49,7 +50,7 @@ class IntakeFormController extends Controller
         ]);
 
         // AI (or rule-based) pre-visit summary for the provider.
-        $summary = $ai->summarizeIntake($responses['responses'] ?? []);
+        $summary = $ai->summarizeIntake($responses['responses'] ?? [], $appointment->clinic_id);
 
         $intake = IntakeForm::updateOrCreate(
             ['appointment_id' => $appointment->id],
@@ -65,8 +66,15 @@ class IntakeFormController extends Controller
 
         AuditLog::record('intake_completed', $appointment);
 
-        return redirect()->route('appointments.show', $appointment)
-            ->with('success', 'Intake form submitted and signed.');
+        // Patients hold no staff permissions, so `appointments.show` (gated
+        // behind `view appointments`) 403s for their own self-service
+        // submission — send them to the dashboard instead; staff still land
+        // on the appointment detail page as before.
+        $redirect = auth()->user()->can('view appointments')
+            ? route('appointments.show', $appointment)
+            : route('dashboard');
+
+        return redirect()->to($redirect)->with('success', 'Intake form submitted and signed.');
     }
 
     /** Digital self check-in on arrival. */

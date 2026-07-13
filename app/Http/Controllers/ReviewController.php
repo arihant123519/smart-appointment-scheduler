@@ -48,7 +48,7 @@ class ReviewController extends Controller
             'provider_id' => $appointment->provider_id,
             'rating' => $data['rating'],
             'comment' => $data['comment'] ?? null,
-            'sentiment' => $data['comment'] ? $ai->analyzeSentiment($data['comment']) : null,
+            'sentiment' => $data['comment'] ? $ai->analyzeSentiment($data['comment'], $appointment->clinic_id) : null,
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Thanks for your feedback!');

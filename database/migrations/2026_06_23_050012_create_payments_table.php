@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('currency', 3)->default('USD');
             $table->string('type')->default('copay'); // copay | fee | refund | deposit | no_show_fee
             $table->string('method')->nullable();     // card | cash | insurance
-            $table->string('provider_ref')->nullable(); // Stripe charge / intent id
+            $table->string('provider_ref')->nullable(); // gateway charge/order id (e.g. Razorpay order id)
             $table->string('status')->default('pending'); // pending | paid | refunded | failed
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();

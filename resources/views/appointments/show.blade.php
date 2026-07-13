@@ -64,6 +64,10 @@
         <div class="card-body">
           <dl class="row mb-0 sas-dl">
             <dt class="col-sm-4 text-muted">Patient</dt><dd class="col-sm-8">{{ $appointment->patient->name }} <small class="text-muted fw-normal">({{ $appointment->patient->email }})</small></dd>
+            @if ($appointment->booked_for_name)
+              <dt class="col-sm-4 text-muted">Booked for</dt>
+              <dd class="col-sm-8">{{ $appointment->booked_for_name }} <small class="text-muted fw-normal">({{ $appointment->booked_for_relationship }} of {{ $appointment->patient->name }})</small></dd>
+            @endif
             <dt class="col-sm-4 text-muted">Provider</dt><dd class="col-sm-8">{{ $appointment->provider->name }} — {{ $appointment->provider->specialty }}</dd>
             <dt class="col-sm-4 text-muted">Service</dt><dd class="col-sm-8">{{ $appointment->service->name ?? '—' }}</dd>
             <dt class="col-sm-4 text-muted">When</dt><dd class="col-sm-8">{{ $appointment->start_at->format('l, F j, Y') }} · {{ $appointment->start_at->format('g:i A') }} – {{ $appointment->end_at->format('g:i A') }}</dd>
@@ -133,6 +137,74 @@
             </form>
           </div>
         </div>
+
+        @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_BOOKED, \App\Models\Appointment::STATUS_CONFIRMED], true))
+          <div class="card sas-card-soft mb-3">
+            <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0"><i class="fi fi-rr-clock text-primary me-1"></i> Suggested reschedule times</h6></div>
+            <div class="card-body">
+              <div id="rescheduleSuggestions" class="text-muted small">Loading suggestions based on this patient's own booking history…</div>
+            </div>
+          </div>
+        @endif
+      @endcan
+
+      @can('manage patients')
+        <div class="card sas-card-soft mb-3">
+          <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fi fi-rr-document-signed text-primary me-1"></i> Documents</h6>
+          </div>
+          <div class="card-body">
+            @forelse ($appointment->documents as $doc)
+              @php $ds = ['draft' => 'warning', 'approved' => 'info', 'sent' => 'success'][$doc->status] ?? 'secondary'; @endphp
+              <div class="border rounded p-2 mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-semibold small">{{ $doc->type_label }}</span>
+                  <span class="badge bg-{{ $ds }}-subtle text-{{ $ds }}">{{ ucfirst($doc->status) }}</span>
+                </div>
+                @if ($doc->status === 'draft')
+                  <form method="POST" action="{{ route('documents.update', $doc) }}" class="mb-2">
+                    @csrf @method('PATCH')
+                    <textarea name="content" class="form-control form-control-sm mb-2" rows="5">{{ old('content', $doc->content) }}</textarea>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm btn-outline-secondary">Save edits</button>
+                    </div>
+                  </form>
+                  <form method="POST" action="{{ route('documents.approve', $doc) }}" onsubmit="return confirm('Approve and send this to the patient now?')">
+                    @csrf
+                    <button class="btn btn-sm btn-primary w-100">Approve &amp; send</button>
+                  </form>
+                @else
+                  <pre class="small bg-light p-2 rounded mb-0" style="white-space: pre-wrap;">{{ $doc->content }}</pre>
+                  @if ($doc->status === 'sent')
+                    <div class="text-muted small mt-1">Sent {{ $doc->sent_at?->diffForHumans() }}</div>
+                  @endif
+                @endif
+              </div>
+            @empty
+              <p class="text-muted small mb-3">No documents drafted yet.</p>
+            @endforelse
+
+            <div class="d-flex flex-wrap gap-2">
+              <form method="POST" action="{{ route('appointments.documents.store', $appointment) }}">
+                @csrf
+                <input type="hidden" name="type" value="referral_letter">
+                <button class="btn btn-sm btn-light">Draft referral letter</button>
+              </form>
+              <form method="POST" action="{{ route('appointments.documents.store', $appointment) }}">
+                @csrf
+                <input type="hidden" name="type" value="consent_form">
+                <button class="btn btn-sm btn-light">Draft consent form</button>
+              </form>
+              @if ($appointment->status === \App\Models\Appointment::STATUS_COMPLETED)
+                <form method="POST" action="{{ route('appointments.documents.store', $appointment) }}">
+                  @csrf
+                  <input type="hidden" name="type" value="visit_recap">
+                  <button class="btn btn-sm btn-light">Draft visit recap</button>
+                </form>
+              @endif
+            </div>
+          </div>
+        </div>
       @endcan
 
       <div class="card sas-card-soft">
@@ -194,6 +266,55 @@
         labels: ['No-show chance'],
         stroke: { lineCap: 'round' },
       }).render();
+    })();
+  </script>
+  <script>
+    (function () {
+      const box = document.getElementById('rescheduleSuggestions');
+      if (!box) return;
+
+      fetch('{{ route('appointments.reschedule-suggestions', $appointment) }}')
+        .then(r => r.json())
+        .then(data => {
+          if (!data.slots || !data.slots.length) {
+            box.innerHTML = '<span class="text-muted">No open slots found in the next two weeks.</span>';
+            return;
+          }
+          box.innerHTML = '';
+          data.slots.forEach(slot => {
+            const wrap = document.createElement('div');
+            wrap.className = 'd-flex justify-content-between align-items-center mb-2';
+            const label = document.createElement('span');
+            label.className = 'small';
+            label.textContent = new Date(slot.start).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-sm btn-outline-primary';
+            btn.textContent = 'Use this time';
+            btn.addEventListener('click', function () {
+              if (!confirm('Reschedule to ' + label.textContent + '?')) return;
+              btn.disabled = true;
+              fetch('{{ route('calendar.reschedule', $appointment) }}', {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                },
+                body: JSON.stringify({ start: slot.start, end: slot.end }),
+              })
+                .then(r => r.json())
+                .then(res => {
+                  if (res.ok) { window.location.reload(); }
+                  else { alert(res.message || 'Could not reschedule.'); btn.disabled = false; }
+                })
+                .catch(() => { alert('Could not reschedule.'); btn.disabled = false; });
+            });
+            wrap.appendChild(label);
+            wrap.appendChild(btn);
+            box.appendChild(wrap);
+          });
+        })
+        .catch(() => { box.innerHTML = '<span class="text-muted">Could not load suggestions.</span>'; });
     })();
   </script>
 @endpush

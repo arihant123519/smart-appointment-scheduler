@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
 use App\Models\MessageLog;
+use App\Models\Setting;
 use App\Models\WhatsappConversation;
 use App\Services\Flows\FlowEngine;
 use App\Support\PhoneNumber;
@@ -16,7 +17,10 @@ use Illuminate\Support\Facades\Log;
  * active WhatsappConversation via FlowEngine) and delivery-status callbacks
  * (best-effort MessageLog status updates). Gupshup does not sign its webhook
  * payloads, so this route is authenticated by a shared-secret `?token=` query
- * parameter instead of CSRF/session auth — see config('services.whatsapp.gupshup_webhook_secret').
+ * parameter instead of CSRF/session auth. Each clinic has its own Gupshup
+ * account and webhook secret (Settings → Integrations); the secret is matched
+ * against every clinic's stored value to authenticate the request — see
+ * {@see Setting::resolveClinicBySecret()}.
  *
  * Payload shapes below follow Gupshup's general Messages/Events webhook
  * format; the exact field paths should be verified against a live Gupshup
@@ -31,10 +35,9 @@ class GupshupWebhookController extends Controller
 {
     public function handle(Request $request): JsonResponse
     {
-        $secret = (string) config('services.whatsapp.gupshup_webhook_secret');
         $provided = (string) ($request->header('X-Webhook-Token') ?? $request->query('token', ''));
 
-        if ($secret === '' || ! hash_equals($secret, $provided)) {
+        if (Setting::resolveClinicBySecret('whatsapp.gupshup_webhook_secret', $provided) === null) {
             abort(403);
         }
 

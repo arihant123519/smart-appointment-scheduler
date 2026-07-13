@@ -44,6 +44,8 @@ class ReminderActionController extends Controller
         $notifications->notifyStatusChange($appointment);
         $notifications->cancelLeadTimes($appointment);
 
+        app(\App\Services\PaymentService::class)->forfeitOrRefundDeposit($appointment);
+
         // Auto-offer the freed slot to the smart waitlist.
         app(\App\Services\WaitlistService::class)->offerFreedSlot($appointment);
 

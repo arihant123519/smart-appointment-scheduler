@@ -52,7 +52,7 @@
         {{-- =================== LEAD-TIME REMINDERS =================== --}}
         <div class="card mb-3" style="height:auto;">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="fi fi-rr-clock me-1"></i> Lead-time reminders <span class="text-muted small">(Booked &amp; Confirmed)</span></h6>
+            <h6 class="mb-0"><i class="fi fi-rr-clock me-1"></i> Lead-time reminders <span class="text-muted small">(Booked & Confirmed)</span></h6>
             <button type="button" class="btn btn-sm btn-outline-primary" id="lt-add"><i class="fi fi-rr-plus me-1"></i> Add lead time</button>
           </div>
           <div class="card-body">
@@ -97,7 +97,7 @@
 
         {{-- =================== REPEAT REMINDER =================== --}}
         <div class="card mb-3" style="height:auto;">
-          <div class="card-header"><h6 class="mb-0"><i class="fi fi-rr-rotate-right me-1"></i> Repeat reminder <span class="text-muted small">(Booked &amp; Confirmed)</span></h6></div>
+          <div class="card-header"><h6 class="mb-0"><i class="fi fi-rr-rotate-right me-1"></i> Repeat reminder <span class="text-muted small">(Booked & Confirmed)</span></h6></div>
           <div class="card-body">
             <p class="text-muted small mb-3">Send a reminder <strong>every N hours</strong> leading up to the appointment (e.g. every 1 hour), stopping at the appointment time. Only future occurrences are sent; duplicates with a lead time above are merged.</p>
             <div class="form-check form-switch mb-3">

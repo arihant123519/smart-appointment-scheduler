@@ -269,7 +269,7 @@ class FlowEngine
         $variable = $node['data']['variable'] ?? null;
         $raw = $variable ? ($conversation->context[$variable] ?? null) : null;
 
-        $parsed = $this->parseRequestedTime($raw);
+        $parsed = $this->parseRequestedTime($raw, $appointment->clinic_id);
 
         if (! $parsed) {
             $this->escalate($conversation, 'the patient\'s requested time ("'.$raw.'") could not be understood');
@@ -299,7 +299,7 @@ class FlowEngine
      * back to AiService::parseDateTime() — itself AI-with-a-rule-based-fallback,
      * so this never depends on the AI provider being configured to function.
      */
-    private function parseRequestedTime(?string $raw): ?Carbon
+    private function parseRequestedTime(?string $raw, ?int $clinicId = null): ?Carbon
     {
         if (! $raw || trim($raw) === '') {
             return null;
@@ -311,7 +311,7 @@ class FlowEngine
             // fall through to AI interpretation below
         }
 
-        $interpreted = $this->ai->parseDateTime($raw);
+        $interpreted = $this->ai->parseDateTime($raw, $clinicId);
         if (! $interpreted) {
             return null;
         }
@@ -362,7 +362,9 @@ class FlowEngine
 
         $eventKey = $data['event_key'] ?? null;
         $mode = $data['mode'] ?? 'text';
-        $section = $mode !== 'text' && $eventKey ? WhatsappTemplate::forEvent($eventKey) : null;
+        $section = $mode !== 'text' && $eventKey && $patient->clinic_id
+            ? WhatsappTemplate::forEvent($patient->clinic_id, $eventKey)
+            : null;
 
         if ($section && $section['template_id']) {
             $params = WhatsappTemplate::resolveParams($section['variables'], $conversation->context ?? []);

@@ -60,11 +60,22 @@ class ServiceController extends Controller
             'color' => ['nullable', 'string', 'max:20'],
             'telehealth' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
+            'recall_window_days' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'recall_cadence_days' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'deposit_required' => ['nullable', 'boolean'],
+            'deposit_amount' => ['nullable', 'required_if:deposit_required,1', 'numeric', 'min:0.5'],
+            'deposit_forfeit_hours' => ['nullable', 'integer', 'min:0', 'max:720'],
+            'overbooking_enabled' => ['nullable', 'boolean'],
+            'overbooking_margin' => ['nullable', 'integer', 'min:1', 'max:5'],
         ]);
         $data['buffer'] ??= 0;
         $data['price'] ??= 0;
         $data['telehealth'] = $request->boolean('telehealth');
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['deposit_required'] = $request->boolean('deposit_required');
+        $data['deposit_amount'] = $data['deposit_required'] ? $data['deposit_amount'] : null;
+        $data['overbooking_enabled'] = $request->boolean('overbooking_enabled');
+        $data['overbooking_margin'] = $data['overbooking_enabled'] ? ($data['overbooking_margin'] ?? 1) : 0;
 
         return $data;
     }

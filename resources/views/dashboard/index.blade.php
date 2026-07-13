@@ -130,9 +130,44 @@
   </div>
 
   <div class="row g-3 mt-1">
+    {{-- Fill rate gauge --}}
+    <div class="col-xl-6">
+      <div class="card sas-card-soft h-100">
+        <div class="card-header bg-transparent border-0 pt-3">
+          <h6 class="mb-0">Fill rate <small class="text-muted fw-normal">(last 30 days)</small></h6>
+        </div>
+        <div class="card-body">
+          @if ($fillRate['available_minutes'] > 0)
+            <div id="fillRateGauge"></div>
+            <div class="text-muted small text-center">{{ number_format($fillRate['booked_minutes']) }} of {{ number_format($fillRate['available_minutes']) }} available minutes booked</div>
+          @else
+            <p class="text-muted mb-0">Set up provider working hours to see fill rate.</p>
+          @endif
+        </div>
+      </div>
+    </div>
+
+    {{-- Channel mix donut --}}
+    <div class="col-xl-6">
+      <div class="card sas-card-soft h-100">
+        <div class="card-header bg-transparent border-0 pt-3">
+          <h6 class="mb-0">Booking channels <small class="text-muted fw-normal">(last 30 days)</small></h6>
+        </div>
+        <div class="card-body">
+          @if (array_sum($channelMix) > 0)
+            <div id="channelMixDonut"></div>
+          @else
+            <p class="text-muted mb-0">No data yet.</p>
+          @endif
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
     {{-- Busiest hours --}}
     <div class="col-xl-8">
-      <div class="card sas-card-soft h-100">
+      <div class="card sas-card-soft">
         <div class="card-header bg-transparent border-0 pt-3">
           <h6 class="mb-0">Busiest hours <small class="text-muted fw-normal">(last 30 days)</small></h6>
         </div>
@@ -408,6 +443,42 @@
           series: keys.map(k => map[k]),
           labels: keys.map(k => labelMap[k] || k),
           colors: keys.map(k => colorMap[k] || '#888'),
+          legend: { position: 'bottom' },
+          dataLabels: { enabled: true, formatter: (v) => Math.round(v) + '%' },
+          plotOptions: { pie: { donut: { size: '68%', labels: { show: true, total: { show: true, label: 'Total',
+            formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) } } } } },
+          stroke: { width: 2 },
+        }).render();
+      })();
+      @endif
+
+      // ---- Fill rate gauge ----
+      @if ($fillRate['available_minutes'] > 0)
+      new ApexCharts(document.querySelector('#fillRateGauge'), {
+        chart: { type: 'radialBar', height: 230, fontFamily: 'Instrument Sans, sans-serif' },
+        series: [{{ $fillRate['rate'] }}],
+        colors: [purple],
+        plotOptions: { radialBar: {
+          hollow: { size: '62%' },
+          track: { background: '#eef0f4' },
+          dataLabels: { name: { offsetY: 22, color: '#6c757d', fontSize: '13px' },
+            value: { offsetY: -12, fontSize: '28px', fontWeight: 700, formatter: (v) => v + '%' } } } },
+        fill: { type: 'gradient', gradient: { shade: 'light', gradientToColors: ['#8f8cf0'], stops: [0, 100] } },
+        labels: ['Filled'],
+        stroke: { lineCap: 'round' },
+      }).render();
+      @endif
+
+      // ---- Channel mix donut ----
+      @if (array_sum($channelMix) > 0)
+      (function () {
+        const map = @json($channelMix);
+        const labelMap = { web: 'Website', app: 'App', phone: 'Phone', walk_in: 'Walk-in', ai: 'AI Assistant', sms: 'SMS', whatsapp: 'WhatsApp' };
+        const keys = Object.keys(map);
+        new ApexCharts(document.querySelector('#channelMixDonut'), {
+          chart: { type: 'donut', height: 280, fontFamily: 'Instrument Sans, sans-serif' },
+          series: keys.map(k => map[k]),
+          labels: keys.map(k => labelMap[k] || k),
           legend: { position: 'bottom' },
           dataLabels: { enabled: true, formatter: (v) => Math.round(v) + '%' },
           plotOptions: { pie: { donut: { size: '68%', labels: { show: true, total: { show: true, label: 'Total',

@@ -13,8 +13,9 @@ class AiBookingController extends Controller
 {
     public function index(AiService $ai): View
     {
-        $enabled = $ai->enabled();
-        $provider = $ai->provider();
+        $clinicId = auth()->user()?->clinic_id;
+        $enabled = $ai->enabled($clinicId);
+        $provider = $ai->provider($clinicId);
 
         return view('ai.booking', compact('enabled', 'provider'));
     }
@@ -24,7 +25,7 @@ class AiBookingController extends Controller
     {
         $data = $request->validate(['text' => ['required', 'string', 'max:500']]);
 
-        $intent = $ai->parseBookingIntent($data['text']);
+        $intent = $ai->parseBookingIntent($data['text'], auth()->user()?->clinic_id);
 
         // Resolve human-friendly labels + matching providers for the suggested service.
         $service = $intent['service_id'] ? Service::find($intent['service_id']) : null;
@@ -51,7 +52,7 @@ class AiBookingController extends Controller
         ]);
 
         $context = ['clinic' => auth()->user()?->clinic_id];
-        $result = $ai->chat($data['messages'], $context);
+        $result = $ai->chat($data['messages'], $context, auth()->user()?->clinic_id);
 
         // If the assistant surfaced a booking intent, attach matching providers
         // and a pre-filled booking link so the patient can confirm (AI never
@@ -81,7 +82,7 @@ class AiBookingController extends Controller
     {
         $data = $request->validate(['text' => ['required', 'string', 'max:1000']]);
 
-        $routing = $ai->routeSymptoms($data['text']);
+        $routing = $ai->routeSymptoms($data['text'], auth()->user()?->clinic_id);
         $routing['providers'] = $this->matchingProviders($routing['specialty'] ?? null);
 
         return response()->json($routing);

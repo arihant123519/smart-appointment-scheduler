@@ -14,7 +14,9 @@
               <tbody>
                 @forelse ($entries as $e)
                   <tr>
-                    <td><span class="badge bg-primary">{{ $e->priority }}</span></td>
+                    <td>
+                      <span class="badge bg-primary" title="{{ $reasons[$e->id] ?? '' }}">{{ $e->priority }}</span>
+                    </td>
                     <td>{{ $e->patient->name }}</td>
                     <td>{{ $e->service->name ?? 'Any' }}</td>
                     <td>{{ $e->provider?->name ?? 'Any' }}</td>
@@ -70,8 +72,9 @@
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">Priority (1 high – 10 low)</label>
-              <input type="number" name="priority" class="form-control" value="5" min="1" max="10">
+              <label class="form-label">Priority override</label>
+              <input type="number" name="priority" class="form-control" min="0" max="100" placeholder="Leave blank to auto-compute">
+              <div class="form-text">Defaults to a computed score from the patient's visit history, attendance, and referrals — hover a priority badge to see why. Set a number to override it.</div>
             </div>
             <button class="btn btn-primary w-100">Add</button>
           </form>

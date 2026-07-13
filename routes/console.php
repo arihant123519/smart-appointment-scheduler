@@ -31,3 +31,11 @@ Schedule::command('ai:recompute-no-show')->dailyAt('02:00');
 
 // Time out WhatsApp conversation flows that have gone quiet, and alert the front desk.
 Schedule::command('flows:sweep-timeouts')->everyFifteenMinutes()->withoutOverlapping();
+
+// Retention loop: overdue-follow-up recalls, care-gap outreach, and the
+// post-visit review request (only after a visit is genuinely completed).
+Schedule::command('recall:dispatch')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('reviews:request-dispatch')->everyFifteenMinutes()->withoutOverlapping();
+
+// Free a held slot if its required deposit was never completed (10-minute hold).
+Schedule::command('payments:release-abandoned')->everyFiveMinutes()->withoutOverlapping();
