@@ -4,7 +4,7 @@
 
 @section('content')
   <div class="row justify-content-center"><div class="col-xl-8">
-    <div class="card"><div class="card-body">
+    <x-card>
       <form method="POST" action="{{ route('providers.store') }}">
         @csrf
         @include('providers._form')
@@ -13,6 +13,6 @@
           <a href="{{ route('providers.index') }}" class="btn btn-light">Cancel</a>
         </div>
       </form>
-    </div></div>
+    </x-card>
   </div></div>
 @endsection

@@ -33,7 +33,7 @@
 
     .flow-node-card {
       border-radius: 10px; overflow: hidden; min-width: 220px; max-width: 240px;
-      box-shadow: 0 1px 2px rgba(20,30,40,.08), 0 4px 14px rgba(20,30,40,.06);
+      box-shadow: var(--sas-shadow-xs, 0 1px 2px rgba(20,30,40,.08)), 0 4px 14px rgba(20,30,40,.06);
       border: 1px solid rgba(0,0,0,.06);
       transition: box-shadow .15s ease;
     }
@@ -156,32 +156,30 @@
     <input type="hidden" name="canvas_json" id="canvas_json_input">
 
     <div class="flow-builder">
-      <div class="card">
-        <div class="card-body d-flex flex-wrap gap-3 align-items-end">
-          <div style="min-width:260px">
-            <label class="form-label small mb-1">Flow name</label>
-            <input type="text" name="name" class="form-control form-control-sm" value="{{ old('name', $flow->name) }}" required>
-          </div>
-          <div style="min-width:220px">
-            <label class="form-label small mb-1">Runs when…</label>
-            <select name="trigger_event" class="form-select form-select-sm">
-              <option value="">— not wired to a trigger yet —</option>
-              @foreach ($events as $key => $label)
-                <option value="{{ $key }}" @selected(old('trigger_event', $flow->trigger_event) === $key)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="ms-auto d-flex align-items-center gap-2">
-            @if ($flow->exists)
-              @php $badge = ['draft' => 'secondary', 'active' => 'success', 'archived' => 'dark'][$flow->status] ?? 'secondary'; @endphp
-              <span class="badge bg-{{ $badge }}">{{ ucfirst($flow->status) }}</span>
-            @endif
-            <a href="{{ route('flows.index') }}" class="btn btn-sm btn-outline-secondary">Cancel</a>
-            <button type="submit" class="btn btn-sm btn-primary"><i class="fi fi-rr-disk me-1"></i> Save</button>
-          </div>
-          @error('canvas_json')<div class="text-danger small w-100">{{ $message }}</div>@enderror
+      <x-card bodyClass="d-flex flex-wrap gap-3 align-items-end">
+        <div style="min-width:260px">
+          <label class="form-label small mb-1">Flow name</label>
+          <input type="text" name="name" class="form-control form-control-sm" value="{{ old('name', $flow->name) }}" required>
         </div>
-      </div>
+        <div style="min-width:220px">
+          <label class="form-label small mb-1">Runs when…</label>
+          <select name="trigger_event" class="form-select form-select-sm">
+            <option value="">— not wired to a trigger yet —</option>
+            @foreach ($events as $key => $label)
+              <option value="{{ $key }}" @selected(old('trigger_event', $flow->trigger_event) === $key)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          @if ($flow->exists)
+            @php $badge = ['draft' => 'secondary', 'active' => 'success', 'archived' => 'dark'][$flow->status] ?? 'secondary'; @endphp
+            <span class="badge bg-{{ $badge }}">{{ ucfirst($flow->status) }}</span>
+          @endif
+          <a href="{{ route('flows.index') }}" class="btn btn-sm btn-light-secondary">Cancel</a>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="fi fi-rr-disk me-1"></i> Save</button>
+        </div>
+        @error('canvas_json')<div class="text-danger small w-100">{{ $message }}</div>@enderror
+      </x-card>
 
       <div class="alert alert-secondary small mb-0">
         <i class="fi fi-rr-info me-1"></i>
@@ -190,28 +188,30 @@
 
       <div class="flow-canvas-wrap">
         <div class="flow-palette">
-          <div class="mb-1">
-            <label class="form-label small mb-1 fw-semibold">New step style</label>
-            <div class="d-flex gap-1 mb-1">
-              <input type="color" id="palette-color" class="form-control form-control-color form-control-sm p-1" style="width:38px;height:31px" value="#0d6efd" title="Color for new steps" disabled>
-              <select id="palette-shape" class="form-select form-select-sm"></select>
+          <x-card bodyClass="p-3 d-flex flex-column gap-2">
+            <div class="mb-1">
+              <label class="form-label small mb-1 fw-semibold">New step style</label>
+              <div class="d-flex gap-1 mb-1">
+                <input type="color" id="palette-color" class="form-control form-control-color form-control-sm p-1" style="width:38px;height:31px" value="#0d6efd" title="Color for new steps" disabled>
+                <select id="palette-shape" class="form-select form-select-sm"></select>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="palette-color-auto" checked>
+                <label class="form-check-label small" for="palette-color-auto">Auto color by type</label>
+              </div>
             </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="palette-color-auto" checked>
-              <label class="form-check-label small" for="palette-color-auto">Auto color by type</label>
-            </div>
-          </div>
-          <hr class="my-1">
-          <button type="button" class="btn btn-outline-primary btn-sm" data-add="send_message"><i class="fi fi-rr-comment-alt me-1"></i> Send message</button>
-          <button type="button" class="btn btn-outline-primary btn-sm" data-add="branch_yes_no"><i class="fi fi-rr-arrows-split-up-and-left me-1"></i> Yes / No branch</button>
-          <button type="button" class="btn btn-outline-primary btn-sm" data-add="capture_text"><i class="fi fi-rr-edit me-1"></i> Capture reply</button>
-          <button type="button" class="btn btn-outline-primary btn-sm" data-add="action"><i class="fi fi-rr-bolt me-1"></i> Take action</button>
-          <button type="button" class="btn btn-outline-primary btn-sm" data-add="end"><i class="fi fi-rr-flag me-1"></i> End flow</button>
-          <hr class="my-1">
-          <div class="small text-muted mb-1">Annotation <span class="text-muted">(not run by the flow)</span></div>
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-add="comment"><i class="fi fi-rr-note me-1"></i> Note / Comment</button>
-          <hr class="my-1">
-          <div class="small text-muted">Click a node on the canvas to edit it. Drag its edge dots to connect steps.</div>
+            <hr class="my-1">
+            <button type="button" class="btn btn-light-primary btn-sm" data-add="send_message"><i class="fi fi-rr-comment-alt me-1"></i> Send message</button>
+            <button type="button" class="btn btn-light-primary btn-sm" data-add="branch_yes_no"><i class="fi fi-rr-arrows-split-up-and-left me-1"></i> Yes / No branch</button>
+            <button type="button" class="btn btn-light-primary btn-sm" data-add="capture_text"><i class="fi fi-rr-edit me-1"></i> Capture reply</button>
+            <button type="button" class="btn btn-light-primary btn-sm" data-add="action"><i class="fi fi-rr-bolt me-1"></i> Take action</button>
+            <button type="button" class="btn btn-light-primary btn-sm" data-add="end"><i class="fi fi-rr-flag me-1"></i> End flow</button>
+            <hr class="my-1">
+            <div class="small text-muted mb-1">Annotation <span class="text-muted">(not run by the flow)</span></div>
+            <button type="button" class="btn btn-light-secondary btn-sm" data-add="comment"><i class="fi fi-rr-note me-1"></i> Note / Comment</button>
+            <hr class="my-1">
+            <div class="small text-muted">Click a node on the canvas to edit it. Drag its edge dots to connect steps.</div>
+          </x-card>
         </div>
 
         <div class="flow-stage">
@@ -224,12 +224,12 @@
         </div>
 
         <div class="flow-side-panel">
-          <div class="card h-100">
-            <div class="card-header"><h6 class="mb-0" id="panel-title">Step details</h6></div>
-            <div class="card-body" id="panel-body">
+          <x-card class="h-100">
+            <x-slot:title><span id="panel-title">Step details</span></x-slot:title>
+            <div id="panel-body">
               <p class="text-muted small mb-0">Select a node on the canvas to edit it, or add one from the palette.</p>
             </div>
-          </div>
+          </x-card>
         </div>
       </div>
     </div>

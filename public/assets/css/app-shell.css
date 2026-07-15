@@ -1,19 +1,23 @@
-/* Smart Appointment Scheduler — app shell layout (sidebar + topbar + content) */
+/* Smart Appointment Scheduler — app shell layout (sidebar + topbar + content)
+   Metronic-inspired: light accordion sidebar with tinted-pill active state,
+   sticky topbar, toolbar-style page header. */
 :root {
-  --sas-sidebar-width: 264px;
-  --sas-topbar-height: 68px;
-  --sas-primary: #5955D1;
+  --sas-sidebar-width: 268px;
+  --sas-topbar-height: 70px;
+  --sas-primary: var(--sas-primary-500, #5955D1);
 }
 
 body {
-  background: #f5f6fa;
+  background: var(--sas-gray-50, #f5f6fa);
 }
 
 .sas-layout {
   min-height: 100vh;
 }
 
-/* Sidebar */
+/* --------------------------------------------------------------------------
+   Sidebar
+   -------------------------------------------------------------------------- */
 .sas-sidebar {
   position: fixed;
   top: 0;
@@ -21,7 +25,7 @@ body {
   bottom: 0;
   width: var(--sas-sidebar-width);
   background: #ffffff;
-  border-right: 1px solid #eceef2;
+  border-right: 1px solid var(--sas-gray-100, #eceef2);
   display: flex;
   flex-direction: column;
   z-index: 1040;
@@ -33,15 +37,68 @@ body {
   display: flex;
   align-items: center;
   gap: .6rem;
-  padding: 0 1.25rem;
-  border-bottom: 1px solid #eceef2;
-  font-weight: 700;
-  color: var(--sas-primary);
+  padding: 0 1.35rem;
+  border-bottom: 1px solid var(--sas-gray-100, #eceef2);
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--sas-gray-900);
   text-decoration: none;
   font-size: 1.05rem;
 }
 
 .sas-sidebar__brand img { height: 30px; }
+
+/* Compact identity card — who you are + which clinic, always visible above
+   the nav so multi-tenant context is never ambiguous while scrolling. */
+.sas-sidebar__identity {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: .85rem 1rem 0;
+  padding: .6rem .7rem;
+  border-radius: var(--sas-radius-md);
+  background: var(--sas-gray-50);
+}
+.sas-sidebar__identity-text { min-width: 0; }
+.sas-sidebar__identity-name {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--sas-gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sas-sidebar__identity-role {
+  font-size: .68rem;
+  color: var(--sas-gray-500);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.sas-nav__search {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  padding: .5rem .75rem;
+  border: 1px solid var(--sas-gray-100, #eceef2);
+  border-radius: var(--sas-radius-md);
+  background: var(--sas-gray-50, #f5f6fa);
+  color: var(--sas-gray-500);
+  font-size: .85rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.sas-nav__search:hover { border-color: var(--sas-primary-200); background: #fff; }
+.sas-nav__kbd {
+  margin-left: auto;
+  font-size: .68rem;
+  border: 1px solid var(--sas-gray-300);
+  border-radius: .3rem;
+  padding: .05rem .35rem;
+  color: var(--sas-gray-600);
+  background: #fff;
+}
 
 .sas-nav {
   flex: 1;
@@ -52,42 +109,71 @@ body {
 .sas-nav__section {
   font-size: .68rem;
   text-transform: uppercase;
-  letter-spacing: .06em;
-  color: #9aa1ad;
-  font-weight: 600;
+  letter-spacing: .07em;
+  color: var(--sas-gray-500, #9aa1ad);
+  font-weight: 700;
   padding: 1rem .85rem .4rem;
+}
+
+.sas-nav__section--toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.sas-nav__chevron {
+  margin-left: auto;
+  font-size: .8rem !important;
+  transition: transform .18s ease;
+}
+.sas-nav__section--toggle[aria-expanded="false"] .sas-nav__chevron {
+  transform: rotate(-90deg);
 }
 
 .sas-nav__link {
   display: flex;
   align-items: center;
   gap: .75rem;
-  padding: .62rem .85rem;
-  border-radius: .6rem;
-  color: #525866;
+  padding: .6rem .85rem;
+  border-radius: var(--sas-radius-md, .6rem);
+  color: var(--sas-gray-700, #525866);
   text-decoration: none;
   font-weight: 500;
-  font-size: .92rem;
+  font-size: .9rem;
   margin-bottom: .15rem;
   transition: background .15s, color .15s;
 }
 
-.sas-nav__link i { width: 20px; text-align: center; font-size: 1.05rem; line-height: 1; }
+.sas-nav__link i { width: 20px; text-align: center; font-size: 1.05rem; line-height: 1; color: var(--sas-gray-400); transition: color .15s; }
 
 .sas-nav__link:hover {
-  background: #f3f3fb;
-  color: var(--sas-primary);
+  background: var(--sas-gray-50);
+  color: var(--sas-gray-900);
 }
+.sas-nav__link:hover i { color: var(--sas-gray-600); }
 
 .sas-nav__link.active {
-  background: var(--sas-primary);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(89, 85, 209, .28);
+  background: var(--sas-primary-50, #f2f1fc);
+  color: var(--sas-primary-700, #3d3a9c);
+  font-weight: 700;
 }
+.sas-nav__link.active i { color: var(--sas-primary); }
 
 .sas-nav__link .badge { margin-left: auto; }
 
-/* Topbar */
+/* Sub-items inside a collapsed section read as visually nested */
+.sas-nav__section + .collapse .sas-nav__link,
+.sas-nav__section + .collapse.show .sas-nav__link {
+  padding-left: 1.1rem;
+}
+
+.sas-sidebar__toggle { display: none; }
+
+/* --------------------------------------------------------------------------
+   Topbar
+   -------------------------------------------------------------------------- */
 .sas-main {
   margin-left: var(--sas-sidebar-width);
   min-height: 100vh;
@@ -97,8 +183,9 @@ body {
 
 .sas-topbar {
   height: var(--sas-topbar-height);
-  background: #fff;
-  border-bottom: 1px solid #eceef2;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--sas-gray-100, #eceef2);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -109,38 +196,60 @@ body {
 }
 
 .sas-content {
-  padding: 1.5rem;
+  padding: 1.75rem;
   flex: 1;
 }
 
-.sas-page-title { font-size: 1.35rem; font-weight: 700; margin: 0; }
+/* --------------------------------------------------------------------------
+   Page toolbar (title + breadcrumb + actions)
+   -------------------------------------------------------------------------- */
+.sas-page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: .75rem;
+  padding-bottom: 1.15rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--sas-gray-100);
+}
+.sas-page-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.015em; margin: 0; color: var(--sas-gray-900); }
+.sas-page-toolbar .breadcrumb {
+  --bs-breadcrumb-divider: '/';
+  font-size: .78rem;
+  color: var(--sas-gray-500);
+  margin-top: .25rem;
+}
+.sas-page-toolbar__actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 
 /* Stat cards */
 .sas-stat__icon {
   width: 52px;
   height: 52px;
-  border-radius: .8rem;
+  border-radius: var(--sas-radius-md, .8rem);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
 }
 
-.sas-sidebar__toggle { display: none; }
-
-/* Mobile */
+/* --------------------------------------------------------------------------
+   Mobile
+   -------------------------------------------------------------------------- */
 @media (max-width: 991.98px) {
   .sas-sidebar { transform: translateX(-100%); }
   .sas-sidebar.open { transform: translateX(0); }
   .sas-main { margin-left: 0; }
   .sas-sidebar__toggle { display: inline-flex; }
+  .sas-content { padding: 1.25rem; }
 }
 
 .sas-backdrop {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.35);
+  background: rgba(17, 24, 39, .4);
+  backdrop-filter: blur(1px);
   z-index: 1035;
 }
 .sas-backdrop.show { display: block; }

@@ -1,19 +1,37 @@
 <div class="row g-3">
-  <div class="col-md-8"><label class="form-label">Name <span class="text-danger">*</span></label><input type="text" name="name" class="form-control" value="{{ old('name', $clinic->name ?? '') }}" required></div>
-  <div class="col-md-4"><label class="form-label">Timezone</label><input type="text" name="timezone" class="form-control" value="{{ old('timezone', $clinic->timezone ?? 'UTC') }}"></div>
-  <div class="col-md-6"><label class="form-label">Email</label><input type="email" name="email" class="form-control" value="{{ old('email', $clinic->email ?? '') }}"></div>
-  <div class="col-md-6"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="{{ old('phone', $clinic->phone ?? '') }}"></div>
-  <div class="col-12"><label class="form-label">Address</label><input type="text" name="address" class="form-control" value="{{ old('address', $clinic->address ?? '') }}"></div>
-  <div class="col-md-4"><label class="form-label">City</label><input type="text" name="city" class="form-control" value="{{ old('city', $clinic->city ?? '') }}"></div>
-  <div class="col-md-4"><label class="form-label">State</label><input type="text" name="state" class="form-control" value="{{ old('state', $clinic->state ?? '') }}"></div>
-  <div class="col-md-4"><label class="form-label">Country</label><input type="text" name="country" class="form-control" value="{{ old('country', $clinic->country ?? '') }}"></div>
+  <div class="col-12"><h6 class="mb-2">Basic info</h6></div>
+  <div class="col-md-8">
+    <x-form-field name="name" label="Name" :required="true" :value="old('name', $clinic->name ?? '')" />
+  </div>
+  <div class="col-md-4">
+    <x-form-field name="timezone" label="Timezone" :value="old('timezone', $clinic->timezone ?? 'UTC')" />
+  </div>
+  <div class="col-md-6">
+    <x-form-field name="email" label="Email" type="email" :value="old('email', $clinic->email ?? '')" />
+  </div>
+  <div class="col-md-6">
+    <x-form-field name="phone" label="Phone" type="text" :value="old('phone', $clinic->phone ?? '')" />
+  </div>
+  <div class="col-12">
+    <x-form-field name="address" label="Address" :value="old('address', $clinic->address ?? '')" />
+  </div>
+  <div class="col-md-4">
+    <x-form-field name="city" label="City" :value="old('city', $clinic->city ?? '')" />
+  </div>
+  <div class="col-md-4">
+    <x-form-field name="state" label="State" :value="old('state', $clinic->state ?? '')" />
+  </div>
+  <div class="col-md-4">
+    <x-form-field name="country" label="Country" :value="old('country', $clinic->country ?? '')" />
+  </div>
 
   <div class="col-12"><hr class="my-1"></div>
 
   <div class="col-12"><h6 class="mb-2">Branding</h6></div>
   <div class="col-md-6">
     <label class="form-label">Logo</label>
-    <input type="file" name="logo" class="form-control" accept="image/*">
+    <input type="file" name="logo" class="form-control @error('logo') is-invalid @enderror" accept="image/*">
+    @error('logo')<div class="invalid-feedback">{{ $message }}</div>@enderror
     @if (($clinic->logo_path ?? null))
       <div class="form-text">
         <img src="{{ $clinic->logo_url }}" alt="Current logo" style="height:28px" class="mt-1 rounded border p-1">
@@ -25,16 +43,18 @@
   </div>
   <div class="col-md-6">
     <label class="form-label">Primary color</label>
-    <input type="color" name="primary_color" class="form-control form-control-color" value="{{ old('primary_color', $clinic->primary_color ?? '#5955d1') }}">
+    <input type="color" name="primary_color" class="form-control form-control-color @error('primary_color') is-invalid @enderror" value="{{ old('primary_color', $clinic->primary_color ?? '#5955d1') }}">
+    @error('primary_color')<div class="invalid-feedback">{{ $message }}</div>@enderror
     <div class="form-text">Best-effort accent color for buttons/links on this clinic's pages.</div>
   </div>
 
   <div class="col-12"><hr class="my-1"></div>
 
+  <div class="col-12"><h6 class="mb-2">Compliance</h6></div>
   <div class="col-md-6">
-    <label class="form-label">ABDM health ID <span class="text-muted small">(India, optional)</span></label>
-    <input type="text" name="abdm_health_id" class="form-control" value="{{ old('abdm_health_id', $clinic->abdm_health_id ?? '') }}" placeholder="Set once the clinic has its own ABDM registration">
-    <div class="form-text">This system connects to it once you've registered directly with the government framework — it doesn't register the clinic for you.</div>
+    <x-form-field name="abdm_health_id" label="ABDM health ID (India, optional)" placeholder="Set once the clinic has its own ABDM registration"
+      help="This system connects to it once you've registered directly with the government framework — it doesn't register the clinic for you."
+      :value="old('abdm_health_id', $clinic->abdm_health_id ?? '')" />
   </div>
   <div class="col-md-6 d-flex align-items-end">
     <div class="form-check form-switch">
@@ -85,15 +105,13 @@
   </div>
 
   <div class="col-md-4">
-    <label class="form-label">Admin name @unless(isset($clinic))<span class="text-danger">*</span>@endunless</label>
-    <input type="text" name="admin_name" class="form-control" value="{{ old('admin_name') }}" @unless(isset($clinic)) required @endunless>
+    <x-form-field name="admin_name" label="Admin name" :required="! isset($clinic)" :value="old('admin_name')" />
   </div>
   <div class="col-md-4">
-    <label class="form-label">Admin email @unless(isset($clinic))<span class="text-danger">*</span>@endunless</label>
-    <input type="email" name="admin_email" class="form-control" value="{{ old('admin_email') }}" @unless(isset($clinic)) required @endunless>
+    <x-form-field name="admin_email" label="Admin email" type="email" :required="! isset($clinic)" :value="old('admin_email')" />
   </div>
   <div class="col-md-4">
-    <label class="form-label">Admin password @unless(isset($clinic))<span class="text-danger">*</span>@endunless</label>
-    <input type="password" name="admin_password" class="form-control" autocomplete="new-password" placeholder="{{ isset($clinic) ? 'Leave blank to skip' : 'Min 8 characters' }}" @unless(isset($clinic)) required @endunless>
+    <x-form-field name="admin_password" label="Admin password" type="password" :required="! isset($clinic)"
+      autocomplete="new-password" placeholder="{{ isset($clinic) ? 'Leave blank to skip' : 'Min 8 characters' }}" />
   </div>
 </div>

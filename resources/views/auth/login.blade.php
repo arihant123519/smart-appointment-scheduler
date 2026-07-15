@@ -12,11 +12,13 @@
     @csrf
     <div class="mb-4">
       <label class="form-label" for="email">Email Address</label>
-      <input type="email" name="email" class="form-control" id="email" value="{{ old('email') }}" placeholder="you@example.com" required autofocus>
+      <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" id="email" value="{{ old('email') }}" placeholder="you@example.com" required autofocus>
+      @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="mb-4">
       <label class="form-label" for="password">Password</label>
-      <input type="password" name="password" class="form-control" id="password" placeholder="********" required>
+      <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" id="password" placeholder="********" required>
+      @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="mb-4 d-flex justify-content-between">
       <div class="form-check mb-0">

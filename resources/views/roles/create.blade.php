@@ -4,14 +4,12 @@
 
 @section('content')
   <div class="row justify-content-center"><div class="col-xl-10">
-    <div class="card"><div class="card-body">
+    <x-card>
       <form method="POST" action="{{ route('roles.store') }}">
         @csrf
         <div class="mb-3 col-md-5">
-          <label class="form-label">Role name</label>
-          <input type="text" name="name" class="form-control" value="{{ old('name') }}"
-                 placeholder="e.g. nurse_lead" required>
-          <div class="form-text">Lowercase letters, numbers and underscores only.</div>
+          <x-form-field name="name" label="Role name" :required="true" :value="old('name')"
+            placeholder="e.g. nurse_lead" help="Lowercase letters, numbers and underscores only." />
         </div>
 
         @include('roles._permissions')
@@ -21,6 +19,6 @@
           <a href="{{ route('roles.index') }}" class="btn btn-light">Cancel</a>
         </div>
       </form>
-    </div></div>
+    </x-card>
   </div></div>
 @endsection

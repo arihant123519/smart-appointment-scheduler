@@ -12,7 +12,9 @@
     @csrf
     <div class="mb-4">
       <label class="form-label" for="phone">Phone number</label>
-      <input type="tel" name="phone" class="form-control" id="phone" value="{{ old('phone') }}" placeholder="+1 555 123 4567" required autofocus>
+      <input type="tel" name="phone" class="form-control @error('phone') is-invalid @enderror" id="phone" value="{{ old('phone') }}" placeholder="+1 555 123 4567" required autofocus>
+      @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+      <div class="form-text">Include your country code, e.g. +1 555 123 4567.</div>
     </div>
     <div class="mb-3">
       <button type="submit" class="btn btn-primary w-100">Send code</button>

@@ -10,7 +10,7 @@
 @endsection
 
 @section('content')
-  <div class="card"><div class="card-body p-0">
+  <x-card bodyClass="p-0">
     <ul class="list-group list-group-flush">
       @forelse ($notifications as $n)
         <li class="list-group-item d-flex align-items-center gap-3 {{ $n->read_at ? '' : 'bg-light' }}">
@@ -25,9 +25,11 @@
           <a href="{{ route('notifications.read', $n->id) }}" class="btn btn-sm btn-light">Open</a>
         </li>
       @empty
-        <li class="list-group-item text-center text-muted py-5">No notifications.</li>
+        <li class="list-group-item p-0">
+          <x-empty-state icon="fi-rr-inbox" title="No notifications" description="You're all caught up." />
+        </li>
       @endforelse
     </ul>
-  </div>
-  <div class="card-footer">{{ $notifications->links() }}</div></div>
+    <x-slot:footer>{{ $notifications->links() }}</x-slot:footer>
+  </x-card>
 @endsection

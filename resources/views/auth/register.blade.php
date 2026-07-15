@@ -12,19 +12,24 @@
     @csrf
     <div class="mb-3">
       <label class="form-label" for="name">Full Name</label>
-      <input type="text" name="name" class="form-control" id="name" value="{{ old('name') }}" required autofocus>
+      <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" id="name" value="{{ old('name') }}" required autofocus>
+      @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="mb-3">
       <label class="form-label" for="email">Email Address</label>
-      <input type="email" name="email" class="form-control" id="email" value="{{ old('email') }}" required>
+      <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" id="email" value="{{ old('email') }}" required>
+      @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="mb-3">
       <label class="form-label" for="phone">Phone (optional)</label>
-      <input type="text" name="phone" class="form-control" id="phone" value="{{ old('phone') }}">
+      <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" id="phone" value="{{ old('phone') }}">
+      @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="mb-3">
       <label class="form-label" for="password">Password</label>
-      <input type="password" name="password" class="form-control" id="password" required>
+      <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" id="password" required>
+      @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+      <div class="form-text">Minimum 8 characters.</div>
     </div>
     <div class="mb-4">
       <label class="form-label" for="password_confirmation">Confirm Password</label>

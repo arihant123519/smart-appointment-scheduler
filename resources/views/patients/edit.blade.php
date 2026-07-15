@@ -4,7 +4,7 @@
 
 @section('content')
   <div class="row justify-content-center"><div class="col-xl-8">
-    <div class="card"><div class="card-body">
+    <x-card>
       <form method="POST" action="{{ route('patients.update', $patient) }}">
         @csrf @method('PUT')
         @include('patients._form')
@@ -13,6 +13,6 @@
           <a href="{{ route('patients.show', $patient) }}" class="btn btn-light">Cancel</a>
         </div>
       </form>
-    </div></div>
+    </x-card>
   </div></div>
 @endsection

@@ -9,8 +9,8 @@
 @section('content')
   <div class="row g-3">
     <div class="col-xl-4">
-      <div class="card">
-        <div class="card-body text-center">
+      <x-card>
+        <div class="text-center">
           <img src="{{ $patient->avatar_url }}" class="rounded-circle mb-3" width="84" height="84" alt="">
           <h5 class="mb-0">{{ $patient->name }}</h5>
           <p class="text-muted">{{ $patient->email }}</p>
@@ -21,12 +21,11 @@
             <dt class="col-5 text-muted">Address</dt><dd class="col-7">{{ $patient->address ?? '—' }}</dd>
           </dl>
         </div>
-      </div>
+      </x-card>
     </div>
     <div class="col-xl-8">
-      <div class="card">
-        <div class="card-header"><h6 class="mb-0">Appointment history</h6></div>
-        <div class="card-body p-0">
+      <x-card title="Appointment history" bodyClass="p-0">
+        <div class="table-responsive">
           <table class="table align-middle mb-0">
             <thead class="table-light"><tr><th>When</th><th>Provider</th><th>Service</th><th>Status</th></tr></thead>
             <tbody>
@@ -35,15 +34,15 @@
                   <td>{{ $a->start_at->format('M j, Y g:i A') }}</td>
                   <td>{{ $a->provider->name }}</td>
                   <td>{{ $a->service->name ?? '—' }}</td>
-                  <td><span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span></td>
+                  <td><x-badge-status :color="$a->status_color" :label="$a->status_label" /></td>
                 </tr>
               @empty
-                <tr><td colspan="4" class="text-center text-muted py-4">No appointments.</td></tr>
+                <x-empty-state colspan="4" icon="fi-rr-calendar" title="No appointments" />
               @endforelse
             </tbody>
           </table>
         </div>
-      </div>
+      </x-card>
     </div>
   </div>
 @endsection

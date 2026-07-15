@@ -8,23 +8,14 @@
 
 @push('styles')
   <style>
-    .sas-card-soft { border: 0; border-radius: 1rem; box-shadow: 0 .25rem .9rem rgba(31, 33, 64, .06); }
-    .sas-phero { background: linear-gradient(120deg, #5955D1 0%, #7b78e0 58%, #9b7be0 100%); color: #fff;
-      border: 0; border-radius: 1.1rem; position: relative; overflow: hidden; }
-    .sas-phero::after { content: ''; position: absolute; right: -40px; top: -60px; width: 220px; height: 220px;
-      border-radius: 50%; background: rgba(255,255,255,.12); }
+    /* Page-specific bits only — cards/hero/hover/pulse/stat-icon now come from
+       the shared design system (public/assets/css/sas-ui.css + app-shell.css). */
     .sas-phero__avatar { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,.22);
       display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; flex: 0 0 60px; }
-    .sas-stat-card { border: 0; border-radius: 1rem; transition: transform .18s ease, box-shadow .18s ease; }
-    .sas-stat-card:hover { transform: translateY(-4px); box-shadow: 0 .75rem 1.5rem rgba(31, 33, 64, .12); }
-    .sas-stat__ico { width: 46px; height: 46px; border-radius: .8rem; display: grid; place-items: center; font-size: 1.2rem; }
-    .sas-count { font-variant-numeric: tabular-nums; }
-    .sas-appt-row { border: 1px solid #f0f0f5; border-radius: .85rem; transition: box-shadow .15s, border-color .15s; }
-    .sas-appt-row:hover { border-color: #d9d8f0; box-shadow: 0 .35rem .9rem rgba(31,33,64,.06); }
+    .sas-appt-row { border: 1px solid var(--sas-gray-100); border-radius: var(--sas-radius-lg); transition: box-shadow .15s, border-color .15s; }
+    .sas-appt-row:hover { border-color: var(--sas-primary-200); box-shadow: var(--sas-shadow-sm); }
     .sas-appt-date { width: 58px; flex: 0 0 58px; text-align: center; }
     .sas-appt-date .d { font-size: 1.3rem; font-weight: 700; line-height: 1; }
-    .sas-pulse { animation: sasPulse 1.6s ease-in-out infinite; }
-    @keyframes sasPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,53,69,.45); } 50% { box-shadow: 0 0 0 .5rem rgba(220,53,69,0); } }
   </style>
 @endpush
 
@@ -32,7 +23,7 @@
   @php $initials = collect(explode(' ', $user->name))->take(2)->map(fn ($w) => mb_substr($w, 0, 1))->implode(''); @endphp
 
   {{-- Welcome hero --}}
-  <div class="card sas-phero mb-4">
+  <div class="card sas-card-hero mb-4">
     <div class="card-body d-flex flex-wrap align-items-center gap-3">
       <div class="sas-phero__avatar">{{ strtoupper($initials) ?: '?' }}</div>
       <div class="flex-grow-1">
@@ -51,87 +42,74 @@
 
   {{-- Stat cards --}}
   <div class="row g-3 mb-4">
-    @php
-      $cards = [
-        ['label' => 'Upcoming', 'value' => $stats['upcoming'], 'icon' => 'fi-rr-clock', 'bg' => 'bg-primary-subtle', 'fg' => 'text-primary'],
-        ['label' => 'Completed', 'value' => $stats['completed'], 'icon' => 'fi-rr-check-circle', 'bg' => 'bg-success-subtle', 'fg' => 'text-success'],
-        ['label' => 'Missed', 'value' => $stats['missed'], 'icon' => 'fi-rr-calendar-xmark', 'bg' => 'bg-danger-subtle', 'fg' => 'text-danger'],
-        ['label' => 'Total visits', 'value' => $stats['total'], 'icon' => 'fi-rr-heart', 'bg' => 'bg-info-subtle', 'fg' => 'text-info'],
-      ];
-    @endphp
-    @foreach ($cards as $card)
-      <div class="col-xl-3 col-sm-6">
-        <div class="card sas-stat-card sas-card-soft h-100">
-          <div class="card-body d-flex align-items-center gap-3">
-            <div class="sas-stat__ico {{ $card['bg'] }} {{ $card['fg'] }}"><i class="fi {{ $card['icon'] }}"></i></div>
-            <div>
-              <div class="text-muted small">{{ $card['label'] }}</div>
-              <div class="h3 mb-0 fw-bold sas-count" data-count-to="{{ (int) $card['value'] }}">0</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    @endforeach
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="Upcoming" :value="$stats['upcoming']" icon="fi-rr-clock" bg="bg-primary-subtle" fg="text-primary" />
+    </div>
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="Completed" :value="$stats['completed']" icon="fi-rr-check-circle" bg="bg-success-subtle" fg="text-success" />
+    </div>
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="Missed" :value="$stats['missed']" icon="fi-rr-calendar-xmark" bg="bg-danger-subtle" fg="text-danger" />
+    </div>
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="Total visits" :value="$stats['total']" icon="fi-rr-heart" bg="bg-info-subtle" fg="text-info" />
+    </div>
   </div>
 
   {{-- Trend + attendance --}}
   <div class="row g-3 mb-4">
     <div class="col-xl-8">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0">Your visits — last 6 months</h6></div>
-        <div class="card-body pt-1"><div id="patientTrend"></div></div>
-      </div>
+      <x-card title="Your visits — last 6 months" bodyClass="pt-1" class="h-100">
+        <div id="patientTrend"></div>
+      </x-card>
     </div>
     <div class="col-xl-4">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0">Attendance rate</h6></div>
-        <div class="card-body text-center">
-          <div id="attendanceGauge"></div>
-          <div class="text-muted small">Based on {{ $stats['completed'] + $stats['missed'] }} finished appointment(s)</div>
-        </div>
-      </div>
+      <x-card title="Attendance rate" bodyClass="text-center" class="h-100">
+        <div id="attendanceGauge"></div>
+        <div class="text-muted small">Based on {{ $stats['completed'] + $stats['missed'] }} finished appointment(s)</div>
+      </x-card>
     </div>
   </div>
 
   {{-- Upcoming appointments (card list) --}}
-  <div class="card sas-card-soft mb-4">
-    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
-      <h6 class="mb-0"><i class="fi fi-rr-clock text-primary me-1"></i> Upcoming appointments</h6>
+  <x-card class="mb-4">
+    <x-slot:title><i class="fi fi-rr-clock text-primary me-1"></i> Upcoming appointments</x-slot:title>
+    <x-slot:toolbar>
       <span class="badge bg-primary-subtle text-primary">{{ $upcoming->count() }}</span>
-    </div>
-    <div class="card-body">
-      @forelse ($upcoming as $a)
-        <div class="sas-appt-row d-flex flex-wrap align-items-center gap-3 p-3 mb-2">
-          <div class="sas-appt-date text-primary">
-            <div class="small text-uppercase">{{ $a->start_at->format('M') }}</div>
-            <div class="d">{{ $a->start_at->format('j') }}</div>
-          </div>
-          <div class="flex-grow-1">
-            <div class="fw-semibold">{{ $a->service->name ?? 'Visit' }} <span class="text-muted fw-normal">· {{ $a->start_at->format('g:i A') }}</span></div>
-            <small class="text-muted"><i class="fi fi-rr-user-md me-1"></i>{{ $a->provider->name }}</small>
-          </div>
-          <span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span>
-          <div class="d-flex gap-1">
-            @if ($a->is_telehealth && $a->telehealth_link)
-              <a href="{{ $a->telehealth_link }}" target="_blank" class="btn btn-sm btn-success" title="Join video visit"><i class="fi fi-rr-video-camera"></i></a>
-            @endif
-            <a href="{{ route('intake.edit', $a) }}" class="btn btn-sm btn-light" title="Intake form"><i class="fi fi-rr-document"></i></a>
-            <form method="POST" action="{{ route('booking.cancel', $a) }}" onsubmit="return confirm('Cancel this appointment?')">
-              @csrf @method('PATCH')
-              <button class="btn btn-sm btn-outline-danger">Cancel</button>
-            </form>
-          </div>
+    </x-slot:toolbar>
+    @forelse ($upcoming as $a)
+      <div class="sas-appt-row d-flex flex-wrap align-items-center gap-3 p-3 mb-2">
+        <div class="sas-appt-date text-primary">
+          <div class="small text-uppercase">{{ $a->start_at->format('M') }}</div>
+          <div class="d">{{ $a->start_at->format('j') }}</div>
         </div>
-      @empty
-        <div class="text-center text-muted py-4">No upcoming appointments. <a href="{{ route('booking.create') }}">Book one now</a>.</div>
-      @endforelse
-    </div>
-  </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ $a->service->name ?? 'Visit' }} <span class="text-muted fw-normal">· {{ $a->start_at->format('g:i A') }}</span></div>
+          <small class="text-muted"><i class="fi fi-rr-user-md me-1"></i>{{ $a->provider->name }}</small>
+        </div>
+        <x-badge-status :color="$a->status_color" :label="$a->status_label" />
+        <div class="d-flex gap-1">
+          @if ($a->is_telehealth && $a->telehealth_link)
+            <a href="{{ $a->telehealth_link }}" target="_blank" class="btn btn-sm btn-success" title="Join video visit"><i class="fi fi-rr-video-camera"></i></a>
+          @endif
+          <a href="{{ route('intake.edit', $a) }}" class="btn btn-sm btn-light" title="Intake form"><i class="fi fi-rr-document"></i></a>
+          <form method="POST" action="{{ route('booking.cancel', $a) }}" data-sas-confirm="Cancel this appointment?" data-sas-confirm-label="Cancel appointment">
+            @csrf @method('PATCH')
+            <button class="btn btn-sm btn-outline-danger">Cancel</button>
+          </form>
+        </div>
+      </div>
+    @empty
+      <x-empty-state icon="fi-rr-calendar-clock" title="No upcoming appointments">
+        <a href="{{ route('booking.create') }}" class="btn btn-sm btn-primary">Book one now</a>
+      </x-empty-state>
+    @endforelse
+  </x-card>
 
   {{-- Referral link --}}
-  <div class="card sas-card-soft mb-4">
-    <div class="card-body d-flex flex-wrap align-items-center gap-3">
-      <div class="sas-stat__ico bg-primary-subtle text-primary"><i class="fi fi-rr-share"></i></div>
+  <x-card class="mb-4">
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <div class="sas-stat__icon bg-primary-subtle text-primary"><i class="fi fi-rr-share"></i></div>
       <div class="flex-grow-1">
         <div class="fw-semibold">Know someone who'd like it here?</div>
         <div class="text-muted small">Share your link — when they book their first visit, we'll know it was you.</div>
@@ -141,45 +119,43 @@
         <button class="btn btn-sm btn-outline-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('referralLinkInput').value); this.innerText='Copied!'; setTimeout(() => this.innerText='Copy', 1500);">Copy</button>
       </div>
     </div>
-  </div>
+  </x-card>
 
   {{-- Past visits --}}
-  <div class="card sas-card-soft">
-    <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0"><i class="fi fi-rr-time-past text-secondary me-1"></i> Past visits</h6></div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table align-middle mb-0">
-          <thead class="table-light"><tr><th>Date</th><th>Provider</th><th>Service</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            @forelse ($past as $a)
-              <tr>
-                <td>{{ $a->start_at->format('M j, Y') }}</td>
-                <td>{{ $a->provider->name }}</td>
-                <td>{{ $a->service->name ?? '—' }}</td>
-                <td><span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span></td>
-                <td class="text-end">
-                  @if ($a->status === \App\Models\Appointment::STATUS_COMPLETED)
-                    <a href="{{ route('reviews.create', $a) }}" class="btn btn-sm btn-light"><i class="fi fi-rr-star me-1"></i> Review</a>
-                  @endif
-                </td>
-              </tr>
-            @empty
-              <tr><td colspan="5" class="text-center text-muted py-4">No past visits.</td></tr>
-            @endforelse
-          </tbody>
-        </table>
-      </div>
+  <x-card bodyClass="p-0">
+    <x-slot:title><i class="fi fi-rr-time-past text-secondary me-1"></i> Past visits</x-slot:title>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Date</th><th>Provider</th><th>Service</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          @forelse ($past as $a)
+            <tr>
+              <td>{{ $a->start_at->format('M j, Y') }}</td>
+              <td>{{ $a->provider->name }}</td>
+              <td>{{ $a->service->name ?? '—' }}</td>
+              <td><x-badge-status :color="$a->status_color" :label="$a->status_label" /></td>
+              <td class="text-end">
+                @if ($a->status === \App\Models\Appointment::STATUS_COMPLETED)
+                  <a href="{{ route('reviews.create', $a) }}" class="btn btn-sm btn-light"><i class="fi fi-rr-star me-1"></i> Review</a>
+                @endif
+              </td>
+            </tr>
+          @empty
+            <x-empty-state colspan="5" icon="fi-rr-time-past" title="No past visits" />
+          @endforelse
+        </tbody>
+      </table>
     </div>
-  </div>
+  </x-card>
 
   {{-- ==================== TODAY / MISSED POPUP ==================== --}}
   @if ($todays->count())
     @php $alert = $todaysMissed->count() > 0; @endphp
     <div class="modal fade" id="patientTodayModal" tabindex="-1" aria-hidden="true" data-alert="{{ $alert ? '1' : '0' }}">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:1rem;overflow:hidden">
+        <div class="modal-content">
           <div class="modal-header border-0 text-white {{ $alert ? 'bg-danger' : '' }}"
-               @if(!$alert) style="background:linear-gradient(120deg,#5955D1,#7b78e0)" @endif>
+               @if(!$alert) style="background:linear-gradient(120deg,var(--sas-primary-500),#7b78e0)" @endif>
             <h5 class="modal-title d-flex align-items-center gap-2">
               <i class="fi {{ $alert ? 'fi-rr-bell-ring sas-pulse rounded-circle p-1' : 'fi-rr-calendar-clock' }}"></i>
               {{ $alert ? 'You missed an appointment' : "You have an appointment today" }}
@@ -213,14 +189,14 @@
                     @if ($a->is_telehealth && $a->telehealth_link)
                       <a href="{{ $a->telehealth_link }}" target="_blank" class="btn btn-sm btn-success"><i class="fi fi-rr-video-camera me-1"></i> Join</a>
                     @else
-                      <span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span>
+                      <x-badge-status :color="$a->status_color" :label="$a->status_label" />
                     @endif
                   </li>
                 @endforeach
               </ul>
             @endif
           </div>
-          <div class="modal-footer border-0">
+          <div class="modal-footer">
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Dismiss</button>
             @php $first = $todays->firstWhere('status', '!=', \App\Models\Appointment::STATUS_NO_SHOW); @endphp
             @if ($first)
@@ -239,21 +215,12 @@
     (function () {
       const purple = '#5955D1';
 
-      // Animated counters
-      document.querySelectorAll('.sas-count').forEach(function (el) {
-        const target = parseInt(el.dataset.countTo, 10) || 0;
-        const dur = 800, start = performance.now();
-        function step(now) {
-          const p = Math.min((now - start) / dur, 1);
-          el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
-          if (p < 1) requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
-      });
+      // Animated counters are handled globally in layouts/app.blade.php
+      // (any element with class "sas-count"/data-count-to opts in automatically).
 
       // Visits trend
       new ApexCharts(document.querySelector('#patientTrend'), {
-        chart: { type: 'area', height: 260, toolbar: { show: false }, fontFamily: 'Instrument Sans, sans-serif' },
+        chart: { type: 'area', height: 260, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
         series: [{ name: 'Visits', data: @json($trendData) }],
         xaxis: { categories: @json($trendLabels) },
         colors: [purple],
@@ -266,9 +233,9 @@
 
       // Attendance gauge
       new ApexCharts(document.querySelector('#attendanceGauge'), {
-        chart: { type: 'radialBar', height: 240, fontFamily: 'Instrument Sans, sans-serif' },
+        chart: { type: 'radialBar', height: 240, fontFamily: 'Inter, sans-serif' },
         series: [{{ $attendanceRate }}],
-        colors: ['#198754'],
+        colors: ['#17c653'],
         plotOptions: { radialBar: { hollow: { size: '62%' }, track: { background: '#eef0f4' },
           dataLabels: { name: { offsetY: 22, color: '#6c757d', fontSize: '13px' },
             value: { offsetY: -10, fontSize: '28px', fontWeight: 700, formatter: (v) => v + '%' } } } },

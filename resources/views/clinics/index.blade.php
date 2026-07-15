@@ -7,7 +7,7 @@
 @endsection
 
 @section('content')
-  <div class="card"><div class="card-body p-0">
+  <x-card bodyClass="p-0">
     <div class="table-responsive p-3">
       <table class="table table-hover align-middle mb-0 datatable">
         <thead class="table-light"><tr><th>Name</th><th>Location</th><th>Timezone</th><th>Providers</th><th>Services</th><th>Appts</th><th>Status</th><th></th></tr></thead>
@@ -20,14 +20,14 @@
               <td>{{ $c->providers_count }}</td>
               <td>{{ $c->services_count }}</td>
               <td>{{ $c->appointments_count }}</td>
-              <td><span class="badge bg-{{ $c->is_active ? 'success' : 'secondary' }}-subtle text-{{ $c->is_active ? 'success' : 'secondary' }}">{{ $c->is_active ? 'Active' : 'Inactive' }}</span></td>
+              <td><x-badge-status :color="$c->is_active ? 'success' : 'secondary'" :label="$c->is_active ? 'Active' : 'Inactive'" :icon="$c->is_active ? 'fi-rr-check' : 'fi-rr-minus'" /></td>
               <td class="text-end"><a href="{{ route('clinics.edit', $c) }}" class="btn btn-sm btn-light">Edit</a></td>
             </tr>
           @empty
-            <tr><td colspan="8" class="text-center text-muted py-4">No clinics.</td></tr>
+            <x-empty-state colspan="8" icon="fi-rr-building" title="No clinics yet" description="Add your first clinic to get started." />
           @endforelse
         </tbody>
       </table>
     </div>
-  </div></div>
+  </x-card>
 @endsection

@@ -2,45 +2,10 @@
 
 @section('title', 'Dashboard')
 
-@push('styles')
-  <style>
-    /* ---- Dashboard polish ------------------------------------------------ */
-    .sas-hero {
-      background: linear-gradient(120deg, #5955D1 0%, #7b78e0 55%, #9b7be0 100%);
-      color: #fff; border: 0; position: relative; overflow: hidden;
-    }
-    .sas-hero::after {
-      content: ''; position: absolute; right: -40px; top: -40px;
-      width: 220px; height: 220px; border-radius: 50%;
-      background: rgba(255, 255, 255, .12);
-    }
-    .sas-hero::before {
-      content: ''; position: absolute; right: 80px; bottom: -60px;
-      width: 160px; height: 160px; border-radius: 50%;
-      background: rgba(255, 255, 255, .08);
-    }
-    .sas-stat-card {
-      border: 0; border-radius: 1rem; overflow: hidden; position: relative;
-      transition: transform .18s ease, box-shadow .18s ease;
-    }
-    .sas-stat-card:hover { transform: translateY(-4px); box-shadow: 0 .75rem 1.5rem rgba(31, 33, 64, .12); }
-    .sas-stat-card .sas-spark { position: absolute; left: 0; right: 0; bottom: 0; opacity: .55; }
-    .sas-stat-card .card-body { position: relative; z-index: 2; }
-    .sas-stat__icon { width: 48px; height: 48px; border-radius: .85rem; display: grid; place-items: center; font-size: 1.2rem; }
-    .sas-stat__delta { font-size: .72rem; font-weight: 600; }
-    .sas-count { font-variant-numeric: tabular-nums; }
-    .sas-card-soft { border: 0; border-radius: 1rem; box-shadow: 0 .25rem .75rem rgba(31, 33, 64, .05); }
-    .sas-chart-toggle .btn { --bs-btn-padding-y: .15rem; --bs-btn-padding-x: .55rem; font-size: .78rem; }
-    .sas-legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-    .sas-pulse { animation: sasPulse 1.6s ease-in-out infinite; }
-    @keyframes sasPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,53,69,.45); } 50% { box-shadow: 0 0 0 .5rem rgba(220,53,69,0); } }
-  </style>
-@endpush
-
 @section('content')
   {{-- Today's appointments highlight --}}
   @if ($todaysAppointments->count())
-    <div class="card sas-hero mb-4">
+    <div class="card sas-card-hero mb-4">
       <div class="card-body d-flex flex-wrap align-items-center gap-3">
         <div class="sas-stat__icon bg-white text-primary"><i class="fi fi-rr-calendar-clock"></i></div>
         <div class="flex-grow-1">
@@ -67,228 +32,183 @@
 
   {{-- Stat cards with mini sparklines --}}
   <div class="row g-3 mb-4">
-    @php
-      $cards = [
-        ['label' => "Today's Appointments", 'value' => $stats['today'], 'icon' => 'fi-rr-calendar-clock', 'bg' => 'bg-primary-subtle', 'fg' => 'text-primary', 'spark' => 'sparkToday', 'color' => '#5955D1', 'series' => $chartData],
-        ['label' => 'Upcoming', 'value' => $stats['upcoming'], 'icon' => 'fi-rr-clock', 'bg' => 'bg-info-subtle', 'fg' => 'text-info', 'spark' => 'sparkUpcoming', 'color' => '#0dcaf0', 'series' => $chartCompleted],
-        ['label' => 'Patients', 'value' => $stats['patients'], 'icon' => 'fi-rr-users', 'bg' => 'bg-success-subtle', 'fg' => 'text-success', 'spark' => 'sparkPatients', 'color' => '#198754', 'series' => $chartData],
-        ['label' => 'No-show rate (30d)', 'value' => $noShowRate.'%', 'icon' => 'fi-rr-chart-line-up', 'bg' => 'bg-danger-subtle', 'fg' => 'text-danger', 'spark' => 'sparkNoShow', 'color' => '#dc3545', 'series' => $chartNoShow],
-      ];
-    @endphp
-    @foreach ($cards as $card)
-      <div class="col-xl-3 col-sm-6">
-        <div class="card sas-stat-card h-100">
-          <div class="card-body d-flex align-items-center gap-3">
-            <div class="sas-stat__icon {{ $card['bg'] }} {{ $card['fg'] }}">
-              <i class="fi {{ $card['icon'] }}"></i>
-            </div>
-            <div>
-              <div class="text-muted small">{{ $card['label'] }}</div>
-              <div class="h3 mb-0 fw-bold sas-count" data-count-to="{{ (float) $card['value'] }}" data-suffix="{{ \Illuminate\Support\Str::contains($card['value'], '%') ? '%' : '' }}">0</div>
-            </div>
-          </div>
-          <div class="sas-spark" id="{{ $card['spark'] }}"
-               data-series='@json($card['series'])' data-color="{{ $card['color'] }}"></div>
-        </div>
-      </div>
-    @endforeach
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="Today's Appointments" :value="$stats['today']" icon="fi-rr-calendar-clock"
+        bg="bg-primary-subtle" fg="text-primary" sparkId="sparkToday" sparkColor="#5955D1" :sparkSeries="$chartData" />
+    </div>
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="Upcoming" :value="$stats['upcoming']" icon="fi-rr-clock"
+        bg="bg-info-subtle" fg="text-info" sparkId="sparkUpcoming" sparkColor="#7239ea" :sparkSeries="$chartCompleted" />
+    </div>
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="Patients" :value="$stats['patients']" icon="fi-rr-users"
+        bg="bg-success-subtle" fg="text-success" sparkId="sparkPatients" sparkColor="#17c653" :sparkSeries="$chartData" />
+    </div>
+    <div class="col-xl-3 col-sm-6">
+      <x-stat-widget label="No-show rate (30d)" :value="$noShowRate.'%'" icon="fi-rr-chart-line-up"
+        bg="bg-danger-subtle" fg="text-danger" sparkId="sparkNoShow" sparkColor="#f1416c" :sparkSeries="$chartNoShow" />
+    </div>
   </div>
 
   <div class="row g-3">
     {{-- Trend chart --}}
     <div class="col-xl-8">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3">
-          <div>
-            <h6 class="mb-0">Appointments — last 14 days</h6>
-            <small class="text-muted">Booked vs. completed vs. no-show</small>
-          </div>
+      <x-card bodyClass="pt-1">
+        <x-slot:toolbar>
           <div class="btn-group sas-chart-toggle" role="group" aria-label="Chart type">
             <button type="button" class="btn btn-outline-secondary active" data-chart-type="area">Area</button>
             <button type="button" class="btn btn-outline-secondary" data-chart-type="bar">Bars</button>
           </div>
-        </div>
-        <div class="card-body pt-1">
-          <div id="apptTrendChart"></div>
-        </div>
-      </div>
+        </x-slot:toolbar>
+        <x-slot:title>Appointments — last 14 days</x-slot:title>
+        <x-slot:subtitle>Booked vs. completed vs. no-show</x-slot:subtitle>
+        <div id="apptTrendChart"></div>
+      </x-card>
     </div>
 
     {{-- Status breakdown donut --}}
     <div class="col-xl-4">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0">Status breakdown</h6></div>
-        <div class="card-body">
-          @if (array_sum($statusBreakdown) > 0)
-            <div id="statusDonut"></div>
-          @else
-            <p class="text-muted mb-0">No data yet.</p>
-          @endif
-        </div>
-      </div>
+      <x-card title="Status breakdown">
+        @if (array_sum($statusBreakdown) > 0)
+          <div id="statusDonut"></div>
+        @else
+          <p class="text-muted mb-0">No data yet.</p>
+        @endif
+      </x-card>
     </div>
   </div>
 
   <div class="row g-3 mt-1">
     {{-- Fill rate gauge --}}
     <div class="col-xl-6">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 pt-3">
-          <h6 class="mb-0">Fill rate <small class="text-muted fw-normal">(last 30 days)</small></h6>
-        </div>
-        <div class="card-body">
-          @if ($fillRate['available_minutes'] > 0)
-            <div id="fillRateGauge"></div>
-            <div class="text-muted small text-center">{{ number_format($fillRate['booked_minutes']) }} of {{ number_format($fillRate['available_minutes']) }} available minutes booked</div>
-          @else
-            <p class="text-muted mb-0">Set up provider working hours to see fill rate.</p>
-          @endif
-        </div>
-      </div>
+      <x-card title="Fill rate" subtitle="Last 30 days">
+        @if ($fillRate['available_minutes'] > 0)
+          <div id="fillRateGauge"></div>
+          <div class="text-muted small text-center">{{ number_format($fillRate['booked_minutes']) }} of {{ number_format($fillRate['available_minutes']) }} available minutes booked</div>
+        @else
+          <p class="text-muted mb-0">Set up provider working hours to see fill rate.</p>
+        @endif
+      </x-card>
     </div>
 
     {{-- Channel mix donut --}}
     <div class="col-xl-6">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 pt-3">
-          <h6 class="mb-0">Booking channels <small class="text-muted fw-normal">(last 30 days)</small></h6>
-        </div>
-        <div class="card-body">
-          @if (array_sum($channelMix) > 0)
-            <div id="channelMixDonut"></div>
-          @else
-            <p class="text-muted mb-0">No data yet.</p>
-          @endif
-        </div>
-      </div>
+      <x-card title="Booking channels" subtitle="Last 30 days">
+        @if (array_sum($channelMix) > 0)
+          <div id="channelMixDonut"></div>
+        @else
+          <p class="text-muted mb-0">No data yet.</p>
+        @endif
+      </x-card>
     </div>
   </div>
 
   <div class="row g-3 mt-1">
     {{-- Busiest hours --}}
     <div class="col-xl-8">
-      <div class="card sas-card-soft">
-        <div class="card-header bg-transparent border-0 pt-3">
-          <h6 class="mb-0">Busiest hours <small class="text-muted fw-normal">(last 30 days)</small></h6>
-        </div>
-        <div class="card-body pt-1">
-          <div id="busyHoursChart"></div>
-        </div>
-      </div>
+      <x-card title="Busiest hours" subtitle="Last 30 days" bodyClass="pt-1">
+        <div id="busyHoursChart"></div>
+      </x-card>
     </div>
 
     {{-- Completion gauge + top services --}}
     <div class="col-xl-4">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0">Completion rate (30d)</h6></div>
-        <div class="card-body">
-          <div id="completionGauge"></div>
-          <hr class="my-2">
-          <div class="text-muted small mb-2">Top services</div>
-          @forelse ($topServices as $name => $count)
-            @php $max = max($topServices); $pct = $max ? round($count / $max * 100) : 0; @endphp
-            <div class="mb-2">
-              <div class="d-flex justify-content-between small">
-                <span class="text-truncate" style="max-width:70%">{{ $name }}</span>
-                <span class="fw-semibold">{{ $count }}</span>
-              </div>
-              <div class="progress" style="height:6px"><div class="progress-bar bg-primary" style="width:{{ $pct }}%"></div></div>
+      <x-card title="Completion rate (30d)">
+        <div id="completionGauge"></div>
+        <hr class="my-2">
+        <div class="text-muted small mb-2">Top services</div>
+        @forelse ($topServices as $name => $count)
+          @php $max = max($topServices); $pct = $max ? round($count / $max * 100) : 0; @endphp
+          <div class="mb-2">
+            <div class="d-flex justify-content-between small">
+              <span class="text-truncate" style="max-width:70%">{{ $name }}</span>
+              <span class="fw-semibold">{{ $count }}</span>
             </div>
-          @empty
-            <p class="text-muted small mb-0">No service data yet.</p>
-          @endforelse
-        </div>
-      </div>
+            <div class="progress" style="height:6px"><div class="progress-bar bg-primary" style="width:{{ $pct }}%"></div></div>
+          </div>
+        @empty
+          <p class="text-muted small mb-0">No service data yet.</p>
+        @endforelse
+      </x-card>
     </div>
   </div>
 
   <div class="row g-3 mt-1">
     {{-- Today's appointments --}}
     <div class="col-xl-8">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
-          <h6 class="mb-0">Today's schedule</h6>
+      <x-card title="Today's schedule" bodyClass="p-0">
+        <x-slot:toolbar>
           <a href="{{ route('calendar') }}" class="btn btn-sm btn-light">Open calendar</a>
+        </x-slot:toolbar>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Time</th><th>Patient</th><th>Provider</th><th>Service</th><th>Status</th></tr></thead>
+            <tbody>
+              @forelse ($todaysAppointments as $a)
+                <tr onclick="window.location='{{ route('appointments.show', $a) }}'" style="cursor:pointer">
+                  <td class="fw-semibold">{{ $a->start_at->format('g:i A') }}</td>
+                  <td>{{ $a->patient->name }}</td>
+                  <td>{{ $a->provider->name }}</td>
+                  <td>{{ $a->service->name ?? '—' }}</td>
+                  <td><x-badge-status :color="$a->status_color" :label="$a->status_label" /></td>
+                </tr>
+              @empty
+                <x-empty-state colspan="5" icon="fi-rr-calendar-clock" title="No appointments today" />
+              @endforelse
+            </tbody>
+          </table>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
-                <tr><th>Time</th><th>Patient</th><th>Provider</th><th>Service</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                @forelse ($todaysAppointments as $a)
-                  <tr onclick="window.location='{{ route('appointments.show', $a) }}'" style="cursor:pointer">
-                    <td class="fw-semibold">{{ $a->start_at->format('g:i A') }}</td>
-                    <td>{{ $a->patient->name }}</td>
-                    <td>{{ $a->provider->name }}</td>
-                    <td>{{ $a->service->name ?? '—' }}</td>
-                    <td><span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span></td>
-                  </tr>
-                @empty
-                  <tr><td colspan="5" class="text-center text-muted py-4">No appointments today.</td></tr>
-                @endforelse
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      </x-card>
     </div>
 
     {{-- High-risk --}}
     <div class="col-xl-4">
-      <div class="card sas-card-soft h-100">
-        <div class="card-header bg-transparent border-0 pt-3"><h6 class="mb-0"><i class="fi fi-rr-exclamation text-danger me-1"></i> High no-show risk</h6></div>
-        <div class="card-body">
-          @forelse ($highRisk as $a)
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <div class="fw-semibold">{{ $a->patient->name }}</div>
-                <small class="text-muted">{{ $a->start_at->format('M j, g:i A') }} · {{ $a->provider->name }}</small>
-              </div>
-              <span class="badge bg-danger">{{ $a->no_show_score }}%</span>
+      <x-card>
+        <x-slot:title><i class="fi fi-rr-exclamation text-danger me-1"></i> High no-show risk</x-slot:title>
+        @forelse ($highRisk as $a)
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <div class="fw-semibold">{{ $a->patient->name }}</div>
+              <small class="text-muted">{{ $a->start_at->format('M j, g:i A') }} · {{ $a->provider->name }}</small>
             </div>
-          @empty
-            <p class="text-muted mb-0">No high-risk appointments. 🎉</p>
-          @endforelse
-        </div>
-      </div>
+            <span class="badge bg-danger">{{ $a->no_show_score }}%</span>
+          </div>
+        @empty
+          <x-empty-state icon="fi-rr-shield-check" title="No high-risk appointments" description="Nice and steady." />
+        @endforelse
+      </x-card>
     </div>
   </div>
 
   {{-- Missed appointments (past + not completed) --}}
   <div class="row g-3 mt-1">
     <div class="col-12">
-      <div class="card sas-card-soft">
-        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
-          <h6 class="mb-0"><i class="fi fi-rr-calendar-xmark text-danger me-1"></i> Missed appointments
-            @if ($missedCount)<span class="badge bg-danger ms-1">{{ $missedCount }}</span>@endif
-          </h6>
+      <x-card bodyClass="p-0">
+        <x-slot:title><i class="fi fi-rr-calendar-xmark text-danger me-1"></i> Missed appointments
+          @if ($missedCount)<span class="badge bg-danger ms-1">{{ $missedCount }}</span>@endif
+        </x-slot:title>
+        <x-slot:toolbar>
           <a href="{{ route('appointments.index', ['status' => \App\Models\Appointment::STATUS_NO_SHOW]) }}" class="btn btn-sm btn-light">View all</a>
+        </x-slot:toolbar>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>When</th><th>Patient</th><th>Provider</th><th>Service</th><th>Status</th></tr></thead>
+            <tbody>
+              @forelse ($missedAppointments as $a)
+                <tr onclick="window.location='{{ route('appointments.show', $a) }}'" style="cursor:pointer">
+                  <td class="text-nowrap">{{ $a->start_at->format('M j, Y g:i A') }}</td>
+                  <td>{{ $a->patient->name ?? '—' }}</td>
+                  <td>{{ $a->provider->name ?? '—' }}</td>
+                  <td>{{ $a->service->name ?? '—' }}</td>
+                  <td><x-badge-status :color="$a->status_color" :label="$a->status_label" /></td>
+                </tr>
+              @empty
+                <x-empty-state colspan="5" icon="fi-rr-check-circle" title="No missed appointments" />
+              @endforelse
+            </tbody>
+          </table>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
-                <tr><th>When</th><th>Patient</th><th>Provider</th><th>Service</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                @forelse ($missedAppointments as $a)
-                  <tr onclick="window.location='{{ route('appointments.show', $a) }}'" style="cursor:pointer">
-                    <td class="text-nowrap">{{ $a->start_at->format('M j, Y g:i A') }}</td>
-                    <td>{{ $a->patient->name ?? '—' }}</td>
-                    <td>{{ $a->provider->name ?? '—' }}</td>
-                    <td>{{ $a->service->name ?? '—' }}</td>
-                    <td><span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span></td>
-                  </tr>
-                @empty
-                  <tr><td colspan="5" class="text-center text-muted py-4">No missed appointments. 🎉</td></tr>
-                @endforelse
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      </x-card>
     </div>
   </div>
 
@@ -302,9 +222,9 @@
     <div class="modal fade" id="todayModal" tabindex="-1" aria-hidden="true"
          data-alert="{{ $alert ? '1' : '0' }}" data-always="{{ $alwaysShow ? '1' : '0' }}">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:1rem;overflow:hidden">
+        <div class="modal-content">
           <div class="modal-header border-0 text-white {{ $alert ? 'bg-danger' : '' }}"
-               @if(!$alert) style="background:linear-gradient(120deg,#5955D1,#7b78e0)" @endif>
+               @if(!$alert) style="background:linear-gradient(120deg,var(--sas-primary-500),#7b78e0)" @endif>
             <h5 class="modal-title d-flex align-items-center gap-2">
               <i class="fi {{ $alert ? 'fi-rr-bell-ring sas-pulse rounded-circle p-1' : 'fi-rr-calendar-clock' }}"></i>
               {{ $alert ? 'Missed appointment alert' : "Today's appointments" }}
@@ -335,7 +255,7 @@
                 @foreach ($todaysAppointments->take(5) as $a)
                   <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                     <span><strong>{{ $a->start_at->format('g:i A') }}</strong> · {{ $a->patient->name }}</span>
-                    <span class="badge bg-{{ $a->status_color }}-subtle text-{{ $a->status_color }}">{{ $a->status_label }}</span>
+                    <x-badge-status :color="$a->status_color" :label="$a->status_label" />
                   </li>
                 @endforeach
               </ul>
@@ -344,7 +264,7 @@
               @endif
             @endif
           </div>
-          <div class="modal-footer border-0">
+          <div class="modal-footer">
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Dismiss</button>
             <a href="{{ route('calendar') }}" class="btn btn-primary">Open calendar</a>
           </div>
@@ -358,48 +278,21 @@
   <script src="{{ asset('assets/libs/apexcharts/apexcharts.min.js') }}"></script>
   <script>
     (function () {
-      const purple = '#5955D1', green = '#198754', red = '#dc3545';
+      const purple = '#5955D1', green = '#17c653', red = '#f1416c';
       const labels = @json($chartLabels);
       const totals = @json($chartData);
       const completed = @json($chartCompleted);
       const noShow = @json($chartNoShow);
 
-      // ---- Animated stat counters ----
-      document.querySelectorAll('.sas-count').forEach(function (el) {
-        const target = parseFloat(el.dataset.countTo) || 0;
-        const suffix = el.dataset.suffix || '';
-        const isFloat = target % 1 !== 0;
-        const dur = 900, start = performance.now();
-        function step(now) {
-          const p = Math.min((now - start) / dur, 1);
-          const eased = 1 - Math.pow(1 - p, 3);
-          const val = target * eased;
-          el.textContent = (isFloat ? val.toFixed(1) : Math.round(val)) + suffix;
-          if (p < 1) requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
-      });
-
-      // ---- Mini sparklines in stat cards ----
-      document.querySelectorAll('.sas-spark').forEach(function (el) {
-        let data;
-        try { data = JSON.parse(el.dataset.series || '[]'); } catch (e) { data = []; }
-        if (!data.length) return;
-        new ApexCharts(el, {
-          chart: { type: 'area', height: 50, sparkline: { enabled: true } },
-          series: [{ data: data }],
-          stroke: { curve: 'smooth', width: 2 },
-          fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0 } },
-          colors: [el.dataset.color || purple],
-          tooltip: { enabled: false },
-        }).render();
-      });
+      // Animated stat counters + mini sparklines are handled once, globally,
+      // in layouts/app.blade.php (any page with .sas-count/.sas-spark opts in
+      // automatically — see that file for the shared implementation).
 
       // ---- Main trend chart (toggle area / bars) ----
       let trendType = 'area';
       function trendOptions(type) {
         return {
-          chart: { type: type, height: 320, toolbar: { show: false }, fontFamily: 'Instrument Sans, sans-serif',
+          chart: { type: type, height: 320, toolbar: { show: false }, fontFamily: 'Inter, sans-serif',
                    animations: { enabled: true, easing: 'easeinout', speed: 600 } },
           series: [
             { name: 'Booked', data: totals },
@@ -436,10 +329,10 @@
       (function () {
         const map = @json($statusBreakdown);
         const labelMap = @json(\App\Models\Appointment::STATUSES);
-        const colorMap = { booked:'#ffc107', confirmed:'#0dcaf0', checked_in:'#5955D1', completed:'#198754', cancelled:'#adb5bd', no_show:'#dc3545' };
+        const colorMap = { booked:'#f6b100', confirmed:'#7239ea', checked_in:'#5955D1', completed:'#17c653', cancelled:'#adb5bd', no_show:'#f1416c' };
         const keys = Object.keys(map);
         new ApexCharts(document.querySelector('#statusDonut'), {
-          chart: { type: 'donut', height: 280, fontFamily: 'Instrument Sans, sans-serif' },
+          chart: { type: 'donut', height: 280, fontFamily: 'Inter, sans-serif' },
           series: keys.map(k => map[k]),
           labels: keys.map(k => labelMap[k] || k),
           colors: keys.map(k => colorMap[k] || '#888'),
@@ -455,7 +348,7 @@
       // ---- Fill rate gauge ----
       @if ($fillRate['available_minutes'] > 0)
       new ApexCharts(document.querySelector('#fillRateGauge'), {
-        chart: { type: 'radialBar', height: 230, fontFamily: 'Instrument Sans, sans-serif' },
+        chart: { type: 'radialBar', height: 230, fontFamily: 'Inter, sans-serif' },
         series: [{{ $fillRate['rate'] }}],
         colors: [purple],
         plotOptions: { radialBar: {
@@ -476,7 +369,7 @@
         const labelMap = { web: 'Website', app: 'App', phone: 'Phone', walk_in: 'Walk-in', ai: 'AI Assistant', sms: 'SMS', whatsapp: 'WhatsApp' };
         const keys = Object.keys(map);
         new ApexCharts(document.querySelector('#channelMixDonut'), {
-          chart: { type: 'donut', height: 280, fontFamily: 'Instrument Sans, sans-serif' },
+          chart: { type: 'donut', height: 280, fontFamily: 'Inter, sans-serif' },
           series: keys.map(k => map[k]),
           labels: keys.map(k => labelMap[k] || k),
           legend: { position: 'bottom' },
@@ -490,7 +383,7 @@
 
       // ---- Busiest hours bar ----
       new ApexCharts(document.querySelector('#busyHoursChart'), {
-        chart: { type: 'bar', height: 260, toolbar: { show: false }, fontFamily: 'Instrument Sans, sans-serif' },
+        chart: { type: 'bar', height: 260, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
         series: [{ name: 'Appointments', data: @json($hourData) }],
         xaxis: { categories: @json($hourLabels) },
         colors: [purple],
@@ -503,9 +396,9 @@
 
       // ---- Completion gauge ----
       new ApexCharts(document.querySelector('#completionGauge'), {
-        chart: { type: 'radialBar', height: 230, fontFamily: 'Instrument Sans, sans-serif' },
+        chart: { type: 'radialBar', height: 230, fontFamily: 'Inter, sans-serif' },
         series: [{{ $completionRate }}],
-        colors: ['#198754'],
+        colors: ['#17c653'],
         plotOptions: { radialBar: {
           hollow: { size: '62%' },
           track: { background: '#eef0f4' },

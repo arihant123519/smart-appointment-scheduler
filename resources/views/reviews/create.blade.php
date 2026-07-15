@@ -4,7 +4,7 @@
 
 @section('content')
   <div class="row justify-content-center"><div class="col-xl-6">
-    <div class="card"><div class="card-body">
+    <x-card>
       <p class="text-muted">How was your visit with {{ $appointment->provider->name }} on {{ $appointment->start_at->format('M j, Y') }}?</p>
       <form method="POST" action="{{ route('reviews.store', $appointment) }}">
         @csrf
@@ -21,6 +21,6 @@
         </div>
         <button class="btn btn-primary">Submit feedback</button>
       </form>
-    </div></div>
+    </x-card>
   </div></div>
 @endsection

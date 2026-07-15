@@ -4,7 +4,7 @@
 
 @section('content')
   <div class="row justify-content-center"><div class="col-xl-8">
-    <div class="card"><div class="card-body">
+    <x-card>
       @if (($introVariant ?? 'control') === 'reassuring')
         <p class="text-muted">Pick what works for you — providers, dates and times below are all real, live availability, so whatever you choose is yours the moment you confirm it.</p>
       @else
@@ -37,8 +37,7 @@
             <input type="hidden" name="start_at" id="startAt" required>
           </div>
           <div class="col-12">
-            <label class="form-label" for="reasonInput">Reason for visit</label>
-            <input type="text" name="reason" id="reasonInput" class="form-control" value="{{ old('reason') }}">
+            <x-form-field name="reason" label="Reason for visit" :value="old('reason')" />
           </div>
           <div class="col-12">
             <div class="form-check">
@@ -60,7 +59,7 @@
         </div>
         <div class="mt-4"><button class="btn btn-primary">Confirm Booking</button></div>
       </form>
-    </div></div>
+    </x-card>
   </div></div>
 @endsection
 

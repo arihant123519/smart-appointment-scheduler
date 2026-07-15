@@ -9,17 +9,20 @@
 
   <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com/">
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet">
 
-  {{-- Icon fonts (CDN — local mirror webfonts were incomplete) --}}
+  {{-- Icon fonts (CDN — local mirror webfonts were incomplete).
+       Only uicons-regular-rounded (`fi-rr-*`) is actually used across the app;
+       the solid/bold weights and Bootstrap Icons were unused dead weight and
+       have been dropped — see resources/views/partials/sidebar.blade.php and
+       topbar.blade.php for the couple of `fi-sr-*` usages migrated to `fi-rr-*`. --}}
   <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
-  <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-solid-rounded/css/uicons-solid-rounded.css">
-  <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-bold-rounded/css/uicons-bold-rounded.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
 
   <link rel="stylesheet" href="{{ asset('assets/libs/flatpickr/flatpickr.min.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/libs/datatables/datatables.min.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/sas-ui.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/app-shell.css') }}">
   @php $sasBrandColor = auth()->user()?->clinic?->primary_color; @endphp
   @if ($sasBrandColor)
@@ -27,6 +30,7 @@
       :root {
         --bs-primary: {{ $sasBrandColor }};
         --bs-primary-rgb: {{ implode(',', sscanf($sasBrandColor, '#%02x%02x%02x')) }};
+        --sas-primary: {{ $sasBrandColor }};
       }
       .btn-primary { background-color: {{ $sasBrandColor }}; border-color: {{ $sasBrandColor }}; }
     </style>
@@ -43,16 +47,16 @@
       @include('partials.topbar')
 
       <main class="sas-content" id="mainContent" tabindex="-1">
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div class="sas-page-toolbar">
           <div>
             <h1 class="sas-page-title">@yield('page_title', View::yieldContent('title', 'Dashboard'))</h1>
             @hasSection('breadcrumb')
               <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">@yield('breadcrumb')</ol>
+                <ol class="breadcrumb mb-0">@yield('breadcrumb')</ol>
               </nav>
             @endif
           </div>
-          <div>@yield('page_actions')</div>
+          <div class="sas-page-toolbar__actions">@yield('page_actions')</div>
         </div>
 
         {{-- session success/error are surfaced as toasts (see bottom of layout) --}}
@@ -75,6 +79,11 @@
   {{-- Global AI navigation assistant (floating) --}}
   @auth
     @include('partials.ai-assistant')
+  @endauth
+
+  {{-- Shared confirm-delete modal (replaces native confirm() app-wide) --}}
+  @auth
+    @include('partials.confirm-modal')
   @endauth
 
   {{-- Toast container --}}
@@ -202,8 +211,8 @@
 
       function updateBadge(n) {
         if (!badge) return;
-        if (n > 0) { badge.textContent = n > 9 ? '9+' : n; badge.style.display = ''; }
-        else { badge.style.display = 'none'; }
+        if (n > 0) { badge.textContent = n > 9 ? '9+' : n; badge.style.display = ''; badge.classList.add('sas-pulse'); }
+        else { badge.style.display = 'none'; badge.classList.remove('sas-pulse'); }
       }
 
       function poll() {
@@ -241,6 +250,77 @@
       bd && bd.addEventListener('click', function () {
         sb.classList.remove('open');
         bd.classList.remove('show');
+      });
+    })();
+  </script>
+  <script>
+    // --- Shared animated stat counters + sparklines -------------------------
+    // Any page can opt in by rendering an element with class "sas-count" and
+    // a "data-count-to" attribute (optionally "data-suffix" for e.g. "%"), or
+    // class "sas-spark" with "data-series" (JSON array) and "data-color".
+    // No-op on pages that don't render these elements.
+    (function () {
+      document.querySelectorAll('.sas-count').forEach(function (el) {
+        const target = parseFloat(el.dataset.countTo) || 0;
+        const suffix = el.dataset.suffix || '';
+        const isFloat = target % 1 !== 0;
+        const dur = 900, start = performance.now();
+        function step(now) {
+          const p = Math.min((now - start) / dur, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          const val = target * eased;
+          el.textContent = (isFloat ? val.toFixed(1) : Math.round(val)) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+
+      if (typeof window.ApexCharts === 'undefined') return;
+      document.querySelectorAll('.sas-spark').forEach(function (el) {
+        let data;
+        try { data = JSON.parse(el.dataset.series || '[]'); } catch (e) { data = []; }
+        if (!data.length) return;
+        new ApexCharts(el, {
+          chart: { type: 'area', height: 50, sparkline: { enabled: true } },
+          series: [{ data: data }],
+          stroke: { curve: 'smooth', width: 2 },
+          fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0 } },
+          colors: [el.dataset.color || '#5955D1'],
+          tooltip: { enabled: false },
+        }).render();
+      });
+    })();
+  </script>
+  <script>
+    // --- Shared confirm-delete modal -----------------------------------------
+    // Drop-in replacement for onsubmit="return confirm('...')" on plain
+    // <form> posts: put data-sas-confirm="Are you sure?" on the <form> (and
+    // optionally data-sas-confirm-label="Delete" for the confirm button text).
+    (function () {
+      const modalEl = document.getElementById('sasConfirmModal');
+      if (!modalEl || !window.bootstrap || !bootstrap.Modal) return;
+      const modal = new bootstrap.Modal(modalEl);
+      const bodyEl = document.getElementById('sasConfirmModalBody');
+      const confirmBtn = document.getElementById('sasConfirmModalBtn');
+      let pendingForm = null;
+
+      document.addEventListener('submit', function (e) {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement) || !form.dataset.sasConfirm) return;
+        if (form.dataset.sasConfirmed === '1') return; // already approved, let it through
+        e.preventDefault();
+        pendingForm = form;
+        bodyEl.textContent = form.dataset.sasConfirm;
+        confirmBtn.textContent = form.dataset.sasConfirmLabel || 'Confirm';
+        modal.show();
+      });
+
+      confirmBtn.addEventListener('click', function () {
+        if (!pendingForm) return;
+        pendingForm.dataset.sasConfirmed = '1';
+        modal.hide();
+        pendingForm.requestSubmit ? pendingForm.requestSubmit() : pendingForm.submit();
+        pendingForm = null;
       });
     })();
   </script>

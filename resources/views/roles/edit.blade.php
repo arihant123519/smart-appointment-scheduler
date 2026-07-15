@@ -4,7 +4,7 @@
 
 @section('content')
   <div class="row justify-content-center"><div class="col-xl-10">
-    <div class="card"><div class="card-body">
+    <x-card>
       <div class="mb-3">
         <span class="text-muted small">Role</span>
         <h5 class="mb-0 text-capitalize">{{ ucwords(str_replace('_',' ',$role->name)) }}</h5>
@@ -20,6 +20,6 @@
           <a href="{{ route('roles.index') }}" class="btn btn-light">Cancel</a>
         </div>
       </form>
-    </div></div>
+    </x-card>
   </div></div>
 @endsection

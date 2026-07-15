@@ -4,7 +4,7 @@
 
 @section('content')
   <div class="row justify-content-center"><div class="col-xl-8">
-    <div class="card"><div class="card-body">
+    <x-card>
       <p class="text-muted">Pre-visit questionnaire for your appointment with {{ $appointment->provider->name }} on
         {{ $appointment->start_at->format('M j, Y g:i A') }}.</p>
       <form method="POST" action="{{ route('intake.update', $appointment) }}">
@@ -16,14 +16,11 @@
           </div>
         @endforeach
         <hr>
-        <div class="mb-3">
-          <label class="form-label">Electronic signature (type your full name) <span class="text-danger">*</span></label>
-          <input type="text" name="signature_name" class="form-control" value="{{ old('signature_name', $intake->signature_name ?? '') }}" required>
-          <small class="text-muted">By typing your name you consent to treatment and confirm the information is accurate.</small>
-        </div>
-        <button class="btn btn-primary">Submit &amp; Sign</button>
-        <a href="{{ url()->previous() }}" class="btn btn-light">Back</a>
+        <x-form-field name="signature_name" label="Electronic signature (type your full name)" :value="old('signature_name', $intake->signature_name ?? '')" :required="true"
+          help="By typing your name you consent to treatment and confirm the information is accurate." />
+        <button class="btn btn-primary mt-3"><i class="fi fi-rr-check me-1"></i> Submit &amp; Sign</button>
+        <a href="{{ url()->previous() }}" class="btn btn-light mt-3">Back</a>
       </form>
-    </div></div>
+    </x-card>
   </div></div>
 @endsection

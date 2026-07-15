@@ -1,32 +1,28 @@
 <div class="row g-3">
   <div class="col-md-6">
-    <label class="form-label">Full name <span class="text-danger">*</span></label>
-    <input type="text" name="name" class="form-control" value="{{ old('name', $patient->name ?? '') }}" required>
+    <x-form-field name="name" label="Full name" :required="true" :value="old('name', $patient->name ?? '')" />
   </div>
   <div class="col-md-6">
-    <label class="form-label">Email <span class="text-danger">*</span></label>
-    <input type="email" name="email" class="form-control" value="{{ old('email', $patient->email ?? '') }}" required>
+    <x-form-field name="email" type="email" label="Email" :required="true" :value="old('email', $patient->email ?? '')" />
   </div>
   <div class="col-md-6">
-    <label class="form-label">Phone</label>
-    <input type="text" name="phone" class="form-control" value="{{ old('phone', $patient->phone ?? '') }}">
+    <x-form-field name="phone" label="Phone" :value="old('phone', $patient->phone ?? '')" />
   </div>
   <div class="col-md-3">
-    <label class="form-label">Date of birth</label>
-    <input type="date" name="date_of_birth" class="form-control" value="{{ old('date_of_birth', isset($patient) && $patient->date_of_birth ? $patient->date_of_birth->format('Y-m-d') : '') }}">
+    <x-form-field name="date_of_birth" type="date" label="Date of birth" :value="old('date_of_birth', isset($patient) && $patient->date_of_birth ? $patient->date_of_birth->format('Y-m-d') : '')" />
   </div>
   <div class="col-md-3">
     <label class="form-label">Gender</label>
-    <select name="gender" class="form-select">
+    <select name="gender" class="form-select @error('gender') is-invalid @enderror">
       <option value="">—</option>
       @foreach (['male', 'female', 'other'] as $g)
         <option value="{{ $g }}" @selected(old('gender', $patient->gender ?? '') === $g)>{{ ucfirst($g) }}</option>
       @endforeach
     </select>
+    @error('gender')<div class="invalid-feedback">{{ $message }}</div>@enderror
   </div>
   <div class="col-12">
-    <label class="form-label">Address</label>
-    <input type="text" name="address" class="form-control" value="{{ old('address', $patient->address ?? '') }}">
+    <x-form-field name="address" label="Address" :value="old('address', $patient->address ?? '')" />
   </div>
   @isset($patient)
     <div class="col-12">

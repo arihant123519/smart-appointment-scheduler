@@ -1,0 +1,614 @@
+/* ==========================================================================
+   Smart Appointment Scheduler — shared design system (Metronic-inspired)
+   Design tokens + reusable component classes layered on top of the vendor
+   Bootstrap template (styles.css). Additive only: existing Bootstrap classes
+   (.card, .btn, .badge, .table, ...) keep working unchanged; "sas-*" classes
+   are meant to be added alongside them, not replace them.
+
+   Every custom property already in use elsewhere (blade views, inline
+   scripts) keeps its original name here — only values are refined and new
+   tokens/components are added, so nothing downstream breaks.
+   ========================================================================== */
+
+:root {
+  /* Primary ramp — fixed to the DEFAULT brand color (#5955D1) for decorative
+     surfaces (gradients, chart palettes, soft/light buttons, subtle tints)
+     that shouldn't shift with per-clinic branding. Anything that must
+     rebrand per clinic uses --bs-primary / --sas-primary (single value),
+     overridden in layouts/app.blade.php. */
+  --sas-primary-25:  #fafaff;
+  --sas-primary-50:  #f2f1fc;
+  --sas-primary-100: #e6e4fa;
+  --sas-primary-200: #cdc9f5;
+  --sas-primary-300: #ada7ed;
+  --sas-primary-400: #8480de;
+  --sas-primary-500: #5955d1;
+  --sas-primary-600: #4a46bd;
+  --sas-primary-700: #3d3a9c;
+  --sas-primary-800: #322f7d;
+  --sas-primary-900: #262463;
+
+  /* Current brand accent — single override point for per-clinic white-label.
+     Defaults to the primary-500 ramp; layouts/app.blade.php overrides
+     --bs-primary/--sas-primary directly, this token tracks it for anything
+     authored against --sas-primary specifically. */
+  --sas-primary: var(--sas-primary-500);
+
+  /* Neutrals — cool gray ramp (Metronic's signature desaturated grays) */
+  --sas-gray-25:  #fbfbfd;
+  --sas-gray-50:  #f5f6fa;
+  --sas-gray-100: #eceef2;
+  --sas-gray-200: #e1e3ea;
+  --sas-gray-300: #d8dce3;
+  --sas-gray-400: #b5b9c6;
+  --sas-gray-500: #9aa1ad;
+  --sas-gray-600: #6c757d;
+  --sas-gray-700: #4b5566;
+  --sas-gray-800: #2f3349;
+  --sas-gray-900: #1f2140;
+
+  /* Semantic — formalizes the -subtle pairing already dominant in the app */
+  --sas-success: #17c653; --sas-success-subtle: #e8fbf0; --sas-success-emphasis: #0f8a3a;
+  --sas-warning: #f6b100; --sas-warning-subtle: #fff8e1; --sas-warning-emphasis: #a3720a;
+  --sas-danger:  #f1416c; --sas-danger-subtle:  #fce9ef; --sas-danger-emphasis:  #b5123f;
+  --sas-info:    #7239ea; --sas-info-subtle:    #f2ebfd; --sas-info-emphasis:    #4f1eb0;
+
+  /* Radius scale */
+  --sas-radius-sm: .5rem;
+  --sas-radius-md: .75rem;
+  --sas-radius-lg: 1rem;
+  --sas-radius-xl: 1.25rem;
+  --sas-radius-2xl: 1.75rem;
+
+  /* Shadow scale — subtle, cool-toned (Metronic favors low-contrast elevation) */
+  --sas-shadow-xs: 0 1px 2px rgba(17, 24, 39, .04);
+  --sas-shadow-sm: 0 .25rem .75rem rgba(17, 24, 39, .05);
+  --sas-shadow-md: 0 .5rem 1.5rem rgba(17, 24, 39, .08);
+  --sas-shadow-lg: 0 1rem 2.5rem rgba(17, 24, 39, .10);
+  --sas-shadow-brand: 0 .5rem 1.25rem rgba(89, 85, 209, .18);
+
+  /* Spacing scale (8px grid) */
+  --sas-space-1: .25rem;
+  --sas-space-2: .5rem;
+  --sas-space-3: .75rem;
+  --sas-space-4: 1rem;
+  --sas-space-5: 1.25rem;
+  --sas-space-6: 1.5rem;
+  --sas-space-8: 2rem;
+  --sas-space-10: 2.5rem;
+
+  /* Type scale */
+  --sas-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sas-fs-xs: .72rem;
+  --sas-fs-sm: .82rem;
+  --sas-fs-base: .95rem;
+  --sas-fs-lg: 1.1rem;
+  --sas-fs-xl: 1.35rem;
+  --sas-fs-2xl: 1.75rem;
+  --sas-fs-3xl: 2.25rem;
+
+  /* Motion */
+  --sas-ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+body {
+  font-family: var(--sas-font-sans);
+  color: var(--sas-gray-800);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--sas-font-sans);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--sas-gray-900);
+}
+
+a { color: var(--sas-primary); }
+a:hover { color: var(--sas-primary-700); }
+
+::selection { background: var(--sas-primary-200); }
+
+/* --------------------------------------------------------------------------
+   Buttons — base refinement + Metronic-style soft/light variants
+   -------------------------------------------------------------------------- */
+.btn {
+  border-radius: var(--sas-radius-md);
+  font-weight: 600;
+  font-size: var(--sas-fs-sm);
+  letter-spacing: -.005em;
+  transition: transform .12s var(--sas-ease), box-shadow .18s var(--sas-ease), background-color .15s var(--sas-ease), border-color .15s var(--sas-ease);
+}
+.btn-sm { border-radius: var(--sas-radius-sm); }
+.btn-lg { border-radius: var(--sas-radius-lg); }
+
+.btn-primary {
+  box-shadow: var(--sas-shadow-brand);
+}
+.btn-primary:hover, .btn-primary:focus {
+  filter: brightness(.94);
+}
+
+.btn:active {
+  transform: scale(.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn:active { transform: none; }
+}
+
+/* Soft/"light" buttons — tinted background, colored text, no border.
+   Primary uses the fixed decorative ramp (not the tenant-brand color) so it
+   always reads as a calm neutral-brand accent even on white-labeled clinics. */
+.btn-light-primary { background: var(--sas-primary-50); color: var(--sas-primary-600); border: 0; }
+.btn-light-primary:hover, .btn-light-primary:focus { background: var(--sas-primary-100); color: var(--sas-primary-700); }
+
+.btn-light-success { background: var(--sas-success-subtle); color: var(--sas-success-emphasis); border: 0; }
+.btn-light-success:hover, .btn-light-success:focus { background: #d7f7e3; color: var(--sas-success-emphasis); }
+
+.btn-light-warning { background: var(--sas-warning-subtle); color: var(--sas-warning-emphasis); border: 0; }
+.btn-light-warning:hover, .btn-light-warning:focus { background: #fef0c2; color: var(--sas-warning-emphasis); }
+
+.btn-light-danger { background: var(--sas-danger-subtle); color: var(--sas-danger-emphasis); border: 0; }
+.btn-light-danger:hover, .btn-light-danger:focus { background: #fbd7e2; color: var(--sas-danger-emphasis); }
+
+.btn-light-info { background: var(--sas-info-subtle); color: var(--sas-info-emphasis); border: 0; }
+.btn-light-info:hover, .btn-light-info:focus { background: #e6d9fb; color: var(--sas-info-emphasis); }
+
+.btn-light-secondary, .btn-light { background: var(--sas-gray-100); color: var(--sas-gray-700); border: 0; }
+.btn-light-secondary:hover, .btn-light:hover { background: var(--sas-gray-200); color: var(--sas-gray-800); }
+
+.btn-light-dark { background: var(--sas-gray-200); color: var(--sas-gray-900); border: 0; }
+.btn-light-dark:hover, .btn-light-dark:focus { background: var(--sas-gray-300); color: var(--sas-gray-900); }
+
+.btn-icon {
+  width: 38px; height: 38px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.btn-icon.btn-sm { width: 32px; height: 32px; }
+.btn-action-gray { background: var(--sas-gray-100); color: var(--sas-gray-700); border: 0; }
+.btn-action-gray:hover { background: var(--sas-gray-200); color: var(--sas-gray-900); }
+
+/* --------------------------------------------------------------------------
+   Badges / labels
+   -------------------------------------------------------------------------- */
+.badge {
+  font-weight: 600;
+  font-size: var(--sas-fs-xs);
+  letter-spacing: .01em;
+  padding: .4em .65em;
+  border-radius: var(--sas-radius-sm);
+}
+.badge.rounded-pill { border-radius: 50rem; }
+.sas-badge-icon i { margin-right: .3rem; font-size: .85em; }
+
+/* Soft/"light" badges — Metronic's `badge-light-{color}` label convention */
+.badge-light-primary { background: var(--sas-primary-50); color: var(--sas-primary-600); }
+.badge-light-success { background: var(--sas-success-subtle); color: var(--sas-success-emphasis); }
+.badge-light-warning { background: var(--sas-warning-subtle); color: var(--sas-warning-emphasis); }
+.badge-light-danger  { background: var(--sas-danger-subtle);  color: var(--sas-danger-emphasis); }
+.badge-light-info    { background: var(--sas-info-subtle);    color: var(--sas-info-emphasis); }
+.badge-light-secondary, .badge-light { background: var(--sas-gray-100); color: var(--sas-gray-700); }
+.badge-light-dark { background: var(--sas-gray-200); color: var(--sas-gray-900); }
+
+/* --------------------------------------------------------------------------
+   Cards
+   -------------------------------------------------------------------------- */
+.card {
+  border: 0;
+  border-radius: var(--sas-radius-lg);
+  box-shadow: var(--sas-shadow-sm);
+}
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--sas-gray-100);
+  font-weight: 700;
+  padding: var(--sas-space-4) var(--sas-space-5);
+}
+.card-body { padding: var(--sas-space-5); }
+.card-footer {
+  background: transparent;
+  border-top: 1px solid var(--sas-gray-100);
+}
+
+.sas-card {
+  border: 0;
+  border-radius: var(--sas-radius-lg);
+  box-shadow: var(--sas-shadow-sm);
+}
+
+.sas-card-hover {
+  transition: transform .18s var(--sas-ease), box-shadow .18s var(--sas-ease);
+}
+.sas-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sas-shadow-lg);
+}
+
+.sas-card-hero {
+  border: 0;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(120deg, var(--sas-primary-500) 0%, #7b78e0 55%, #9b7be0 100%);
+}
+.sas-card-hero::after {
+  content: '';
+  position: absolute; right: -40px; top: -40px;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+}
+.sas-card-hero::before {
+  content: '';
+  position: absolute; right: 80px; bottom: -60px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: rgba(255, 255, 255, .08);
+}
+.sas-card-hero > * { position: relative; z-index: 2; }
+
+/* Card header with a trailing actions row ("toolbar") — the recurring
+   title + filter/action-buttons pattern across index pages. */
+.sas-card-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sas-space-2);
+}
+.sas-card-toolbar .sas-card-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sas-space-2);
+}
+
+/* Compact button-group toggle used inside card toolbars (e.g. chart type switch) */
+.sas-chart-toggle .btn { --bs-btn-padding-y: .15rem; --bs-btn-padding-x: .55rem; font-size: .78rem; }
+
+/* --------------------------------------------------------------------------
+   Tables
+   -------------------------------------------------------------------------- */
+.table thead th {
+  text-transform: uppercase;
+  font-size: var(--sas-fs-xs);
+  letter-spacing: .04em;
+  font-weight: 700;
+  color: var(--sas-gray-500);
+  background: var(--sas-gray-25);
+  border-bottom: 1px solid var(--sas-gray-100);
+  white-space: nowrap;
+}
+.table > :not(caption) > * > * { padding: .85rem .9rem; }
+.table-hover > tbody > tr:hover > * {
+  background-color: var(--sas-primary-25);
+}
+.table td { color: var(--sas-gray-800); vertical-align: middle; }
+
+/* --------------------------------------------------------------------------
+   Forms
+   -------------------------------------------------------------------------- */
+.form-label {
+  font-weight: 600;
+  font-size: var(--sas-fs-sm);
+  color: var(--sas-gray-700);
+  margin-bottom: .4rem;
+}
+.form-control, .form-select {
+  border-radius: var(--sas-radius-md);
+  border-color: var(--sas-gray-200);
+  font-size: var(--sas-fs-base);
+  padding: .55rem .85rem;
+}
+.form-control:hover, .form-select:hover { border-color: var(--sas-gray-300); }
+.form-control:focus, .form-select:focus {
+  border-color: var(--sas-primary);
+  box-shadow: 0 0 0 .2rem var(--sas-primary-100);
+}
+.form-control.is-invalid:focus, .form-select.is-invalid:focus {
+  box-shadow: 0 0 0 .2rem var(--sas-danger-subtle);
+}
+.form-control.is-valid:focus, .form-select.is-valid:focus {
+  box-shadow: 0 0 0 .2rem var(--sas-success-subtle);
+}
+.form-text {
+  font-size: var(--sas-fs-xs);
+  color: var(--sas-gray-500);
+}
+.invalid-feedback { font-size: var(--sas-fs-xs); font-weight: 500; }
+.form-check-input:checked {
+  background-color: var(--sas-primary);
+  border-color: var(--sas-primary);
+}
+.form-check-input:focus {
+  box-shadow: 0 0 0 .2rem var(--sas-primary-100);
+}
+
+/* --------------------------------------------------------------------------
+   Alerts / toasts
+   -------------------------------------------------------------------------- */
+.alert {
+  border: 0;
+  border-radius: var(--sas-radius-lg);
+  font-size: var(--sas-fs-sm);
+}
+.toast {
+  border: 0;
+  border-radius: var(--sas-radius-lg);
+  box-shadow: var(--sas-shadow-md);
+}
+.toast-header {
+  background: transparent;
+  border-bottom: 1px solid var(--sas-gray-100);
+  border-radius: var(--sas-radius-lg) var(--sas-radius-lg) 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   Dropdowns / modals / pagination
+   -------------------------------------------------------------------------- */
+.dropdown-menu {
+  border: 0;
+  border-radius: var(--sas-radius-md);
+  box-shadow: var(--sas-shadow-md);
+  padding: .5rem;
+}
+.dropdown-item {
+  border-radius: var(--sas-radius-sm);
+  padding: .5rem .75rem;
+  font-size: var(--sas-fs-sm);
+  font-weight: 500;
+}
+.dropdown-item:hover, .dropdown-item:focus {
+  background: var(--sas-primary-50);
+  color: var(--sas-primary-700);
+}
+.dropdown-item.text-danger:hover { background: var(--sas-danger-subtle); }
+
+.modal-content {
+  border: 0;
+  border-radius: var(--sas-radius-lg);
+  box-shadow: var(--sas-shadow-lg);
+}
+.modal-header { border-bottom: 1px solid var(--sas-gray-100); }
+.modal-footer { border-top: 1px solid var(--sas-gray-100); }
+
+.pagination .page-link {
+  border: 0;
+  margin: 0 .15rem;
+  border-radius: var(--sas-radius-sm);
+  color: var(--sas-gray-700);
+  font-weight: 600;
+  font-size: var(--sas-fs-sm);
+}
+.pagination .page-item.active .page-link {
+  background: var(--sas-primary);
+  color: #fff;
+  box-shadow: var(--sas-shadow-brand);
+}
+.pagination .page-link:hover { background: var(--sas-gray-100); }
+
+/* --------------------------------------------------------------------------
+   Avatars / symbols
+   -------------------------------------------------------------------------- */
+.sas-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--sas-primary-50);
+  color: var(--sas-primary-600);
+  font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.sas-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sas-avatar-sm { width: 32px; height: 32px; font-size: .75rem; }
+.sas-avatar-md { width: 40px; height: 40px; font-size: .85rem; }
+.sas-avatar-lg { width: 56px; height: 56px; font-size: 1.1rem; }
+
+/* --------------------------------------------------------------------------
+   Badges — small semantic icon glyph alongside the dominant `-subtle` color
+   convention, so status is never conveyed by color alone.
+   -------------------------------------------------------------------------- */
+.sas-empty-state {
+  text-align: center;
+  color: var(--sas-gray-500);
+  padding: 2.5rem 1rem;
+}
+.sas-empty-state i {
+  display: block;
+  font-size: 1.75rem;
+  margin-bottom: .5rem;
+  color: var(--sas-gray-300);
+}
+.sas-empty-state strong {
+  display: block;
+  color: var(--sas-gray-600);
+  font-weight: 600;
+  margin-bottom: .15rem;
+}
+
+/* --------------------------------------------------------------------------
+   Skeleton loaders — for client-side-rendered content (charts, calendar)
+   -------------------------------------------------------------------------- */
+.sas-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--sas-gray-100);
+  border-radius: var(--sas-radius-md);
+}
+.sas-skeleton::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .6), transparent);
+  background-size: 200% 100%;
+  animation: sasShimmer 1.4s ease-in-out infinite;
+}
+@keyframes sasShimmer {
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sas-skeleton::after { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Row-actions dropdown — replaces multi-button table rows
+   -------------------------------------------------------------------------- */
+.sas-dropdown-actions .btn {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.sas-dropdown-actions .dropdown-menu {
+  min-width: 11rem;
+}
+.sas-dropdown-actions .dropdown-item i { width: 18px; text-align: center; margin-right: .5rem; }
+.sas-dropdown-actions form { margin: 0; }
+.sas-dropdown-actions form .dropdown-item { width: 100%; text-align: left; border: 0; background: none; }
+
+/* --------------------------------------------------------------------------
+   Micro-interactions
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--sas-primary-500);
+  outline-offset: 2px;
+}
+
+.sas-pulse {
+  animation: sasPulse 1.6s ease-in-out infinite;
+}
+@keyframes sasPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, .45); }
+  50% { box-shadow: 0 0 0 .5rem rgba(220, 53, 69, 0); }
+}
+
+.sas-count { font-variant-numeric: tabular-nums; }
+
+/* Staggered fade/slide-in for card grids on page load (CSS-only, capped so
+   long lists don't produce absurd cumulative delay). */
+.sas-stagger > * {
+  opacity: 0;
+  animation: sasFadeUp .45s var(--sas-ease) forwards;
+}
+.sas-stagger > *:nth-child(1) { animation-delay: .02s; }
+.sas-stagger > *:nth-child(2) { animation-delay: .06s; }
+.sas-stagger > *:nth-child(3) { animation-delay: .10s; }
+.sas-stagger > *:nth-child(4) { animation-delay: .14s; }
+.sas-stagger > *:nth-child(5) { animation-delay: .18s; }
+.sas-stagger > *:nth-child(6) { animation-delay: .22s; }
+.sas-stagger > *:nth-child(n+7) { animation-delay: .26s; }
+@keyframes sasFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sas-stagger > * { animation: none; opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   Plugin re-theming — DataTables, Flatpickr, FullCalendar
+   (ApexCharts is configured per-page via inline JS options instead, since it
+   has no separate stylesheet to override.)
+   -------------------------------------------------------------------------- */
+
+/* DataTables — search box / length select / pagination controls */
+.dataTables_wrapper .dataTables_filter input {
+  border-radius: var(--sas-radius-md);
+  border: 1px solid var(--sas-gray-200);
+  padding: .4rem .75rem;
+  margin-left: .5rem;
+}
+.dataTables_wrapper .dataTables_filter input:focus {
+  outline: none;
+  border-color: var(--sas-primary);
+  box-shadow: 0 0 0 .2rem var(--sas-primary-100);
+}
+.dataTables_wrapper .dataTables_length select {
+  border-radius: var(--sas-radius-sm);
+  border: 1px solid var(--sas-gray-200);
+  padding: .25rem .5rem;
+}
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter { font-size: var(--sas-fs-sm); color: var(--sas-gray-600); }
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: var(--sas-radius-sm) !important;
+  border: 0 !important;
+  margin: 0 .15rem !important;
+  color: var(--sas-gray-700) !important;
+  font-weight: 600;
+  font-size: var(--sas-fs-sm);
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: var(--sas-primary) !important;
+  color: #fff !important;
+  box-shadow: var(--sas-shadow-brand);
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.current) {
+  background: var(--sas-gray-100) !important;
+  color: var(--sas-gray-900) !important;
+}
+
+/* Flatpickr */
+.flatpickr-calendar {
+  border-radius: var(--sas-radius-lg);
+  box-shadow: var(--sas-shadow-md);
+  border: 0;
+  font-family: var(--sas-font-sans);
+}
+.flatpickr-day.selected, .flatpickr-day.selected:hover {
+  background: var(--sas-primary);
+  border-color: var(--sas-primary);
+}
+.flatpickr-day.today { border-color: var(--sas-primary); }
+.flatpickr-day:hover { background: var(--sas-primary-50); }
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-weekdays { background: #fff; }
+.flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover { background: var(--sas-primary-50); }
+
+/* FullCalendar */
+.fc {
+  font-family: var(--sas-font-sans);
+  --fc-border-color: var(--sas-gray-100);
+  --fc-today-bg-color: var(--sas-primary-25);
+  --fc-neutral-bg-color: var(--sas-gray-50);
+  --fc-page-bg-color: #fff;
+}
+.fc .fc-toolbar-title { font-size: var(--sas-fs-xl); font-weight: 800; color: var(--sas-gray-900); }
+.fc .fc-button {
+  border-radius: var(--sas-radius-sm) !important;
+  background: var(--sas-gray-100) !important;
+  border: 0 !important;
+  color: var(--sas-gray-700) !important;
+  font-weight: 600;
+  text-transform: capitalize;
+  box-shadow: none !important;
+}
+.fc .fc-button:hover { background: var(--sas-gray-200) !important; }
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: var(--sas-primary) !important;
+  color: #fff !important;
+}
+.fc .fc-daygrid-day.fc-day-today,
+.fc .fc-timegrid-col.fc-day-today { background: var(--sas-primary-25); }
+.fc-event {
+  border-radius: var(--sas-radius-sm);
+  border: 0;
+  font-size: var(--sas-fs-xs);
+  font-weight: 600;
+  padding: 1px 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Confirm modal (shared, replaces native confirm())
+   -------------------------------------------------------------------------- */
+#sasConfirmModal .sas-confirm-icon {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--sas-danger-subtle);
+  color: var(--sas-danger);
+  font-size: 1.1rem;
+}
