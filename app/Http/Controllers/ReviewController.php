@@ -25,6 +25,7 @@ class ReviewController extends Controller
             ->latest()->get();
         $average = round((float) $reviews->avg('rating'), 1);
         $sentiment = $reviews->groupBy('sentiment')->map->count();
+        $byRating = collect(range(5, 1))->mapWithKeys(fn ($n) => [$n => $reviews->where('rating', $n)->count()]);
 
         // AI-extracted recurring themes across recent comments (PRD §5.2).
         $comments = $reviews->pluck('comment')->filter()->take(50)->values()->all();
@@ -32,7 +33,7 @@ class ReviewController extends Controller
 
         $clinics = $isSystemAdmin ? Clinic::orderBy('name')->get() : collect();
 
-        return view('reviews.index', compact('reviews', 'average', 'sentiment', 'themes', 'clinics', 'clinicId'));
+        return view('reviews.index', compact('reviews', 'average', 'sentiment', 'byRating', 'themes', 'clinics', 'clinicId'));
     }
 
     /** Lightweight JSON feed for the live-updating reviews list. */

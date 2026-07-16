@@ -232,7 +232,7 @@
       if (!el || typeof ApexCharts === 'undefined') return;
       const score = {{ (int) $appointment->no_show_score }};
       const colors = { high: '#f1416c', medium: '#f6b100', low: '#17c653' };
-      const color = colors['{{ $appointment->risk_level }}'] || '#5955D1';
+      const color = colors['{{ $appointment->risk_level }}'] || '#2563EB';
       new ApexCharts(el, {
         chart: { type: 'radialBar', height: 230, fontFamily: 'Inter, sans-serif' },
         series: [score],

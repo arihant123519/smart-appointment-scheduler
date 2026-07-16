@@ -11,61 +11,61 @@
    ========================================================================== */
 
 :root {
-  /* Primary ramp — fixed to the DEFAULT brand color (#5955D1) for decorative
+  /* Primary ramp — "Ichelon Enterprise" sapphire blue, fixed for decorative
      surfaces (gradients, chart palettes, soft/light buttons, subtle tints)
      that shouldn't shift with per-clinic branding. Anything that must
      rebrand per clinic uses --bs-primary / --sas-primary (single value),
      overridden in layouts/app.blade.php. */
-  --sas-primary-25:  #fafaff;
-  --sas-primary-50:  #f2f1fc;
-  --sas-primary-100: #e6e4fa;
-  --sas-primary-200: #cdc9f5;
-  --sas-primary-300: #ada7ed;
-  --sas-primary-400: #8480de;
-  --sas-primary-500: #5955d1;
-  --sas-primary-600: #4a46bd;
-  --sas-primary-700: #3d3a9c;
-  --sas-primary-800: #322f7d;
-  --sas-primary-900: #262463;
+  --sas-primary-25:  #f5f9ff;
+  --sas-primary-50:  #eff6ff;
+  --sas-primary-100: #dbeafe;
+  --sas-primary-200: #bfdbfe;
+  --sas-primary-300: #93c5fd;
+  --sas-primary-400: #60a5fa;
+  --sas-primary-500: #3b82f6;
+  --sas-primary-600: #2563eb;
+  --sas-primary-700: #1d4ed8;
+  --sas-primary-800: #1e40af;
+  --sas-primary-900: #1e3a8a;
 
   /* Current brand accent — single override point for per-clinic white-label.
-     Defaults to the primary-500 ramp; layouts/app.blade.php overrides
-     --bs-primary/--sas-primary directly, this token tracks it for anything
-     authored against --sas-primary specifically. */
-  --sas-primary: var(--sas-primary-500);
+     Defaults to the primary-600 ramp (the sapphire anchor); layouts/app.blade.php
+     overrides --bs-primary/--sas-primary directly, this token tracks it for
+     anything authored against --sas-primary specifically. */
+  --sas-primary: var(--sas-primary-600);
 
-  /* Neutrals — cool gray ramp (Metronic's signature desaturated grays) */
-  --sas-gray-25:  #fbfbfd;
-  --sas-gray-50:  #f5f6fa;
-  --sas-gray-100: #eceef2;
-  --sas-gray-200: #e1e3ea;
-  --sas-gray-300: #d8dce3;
-  --sas-gray-400: #b5b9c6;
-  --sas-gray-500: #9aa1ad;
-  --sas-gray-600: #6c757d;
-  --sas-gray-700: #4b5566;
-  --sas-gray-800: #2f3349;
-  --sas-gray-900: #1f2140;
+  /* Neutrals — Tailwind slate ramp (Ichelon Enterprise house neutral) */
+  --sas-gray-25:  #fbfcfe;
+  --sas-gray-50:  #f8fafc;
+  --sas-gray-100: #f1f5f9;
+  --sas-gray-200: #e2e8f0;
+  --sas-gray-300: #cbd5e1;
+  --sas-gray-400: #94a3b8;
+  --sas-gray-500: #64748b;
+  --sas-gray-600: #475569;
+  --sas-gray-700: #334155;
+  --sas-gray-800: #1e293b;
+  --sas-gray-900: #0f172a;
 
   /* Semantic — formalizes the -subtle pairing already dominant in the app */
-  --sas-success: #17c653; --sas-success-subtle: #e8fbf0; --sas-success-emphasis: #0f8a3a;
-  --sas-warning: #f6b100; --sas-warning-subtle: #fff8e1; --sas-warning-emphasis: #a3720a;
-  --sas-danger:  #f1416c; --sas-danger-subtle:  #fce9ef; --sas-danger-emphasis:  #b5123f;
-  --sas-info:    #7239ea; --sas-info-subtle:    #f2ebfd; --sas-info-emphasis:    #4f1eb0;
+  --sas-success: #059669; --sas-success-subtle: #ecfdf5; --sas-success-emphasis: #047857;
+  --sas-warning: #d97706; --sas-warning-subtle: #fffbeb; --sas-warning-emphasis: #92400e;
+  --sas-danger:  #dc2626; --sas-danger-subtle:  #fef2f2; --sas-danger-emphasis:  #b91c1c;
+  --sas-info:    #2563eb; --sas-info-subtle:    #eff6ff; --sas-info-emphasis:    #1d4ed8;
 
-  /* Radius scale */
-  --sas-radius-sm: .5rem;
-  --sas-radius-md: .75rem;
-  --sas-radius-lg: 1rem;
-  --sas-radius-xl: 1.25rem;
-  --sas-radius-2xl: 1.75rem;
+  /* Radius scale — Ichelon: chips 4px, controls 8px, cards 12px, surfaces 16px max, never pill */
+  --sas-radius-sm: .25rem;
+  --sas-radius-md: .5rem;
+  --sas-radius-lg: .75rem;
+  --sas-radius-xl: .75rem;
+  --sas-radius-2xl: 1rem;
 
-  /* Shadow scale — subtle, cool-toned (Metronic favors low-contrast elevation) */
-  --sas-shadow-xs: 0 1px 2px rgba(17, 24, 39, .04);
-  --sas-shadow-sm: 0 .25rem .75rem rgba(17, 24, 39, .05);
-  --sas-shadow-md: 0 .5rem 1.5rem rgba(17, 24, 39, .08);
-  --sas-shadow-lg: 0 1rem 2.5rem rgba(17, 24, 39, .10);
-  --sas-shadow-brand: 0 .5rem 1.25rem rgba(89, 85, 209, .18);
+  /* Shadow scale — flat house style: defined 1px borders carry weight, shadow is a whisper */
+  --sas-shadow-xs: 0 1px 2px rgba(15, 23, 42, .04);
+  --sas-shadow-sm: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px -1px rgba(15, 23, 42, .06);
+  --sas-shadow-md: 0 .5rem 1.5rem rgba(15, 23, 42, .08);
+  --sas-shadow-lg: 0 1rem 2.5rem rgba(15, 23, 42, .10);
+  --sas-shadow-brand: none;
 
   /* Spacing scale (8px grid) */
   --sas-space-1: .25rem;
@@ -89,6 +89,64 @@
 
   /* Motion */
   --sas-ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* --------------------------------------------------------------------
+     Bootstrap native palette override — the vendor theme (styles.css)
+     hardcodes its own --bs-* variables (old Metronic purple/teal/violet).
+     Every plain Bootstrap class (.btn-primary, .badge-success, .alert-*,
+     .text-info, .border-primary, ...) reads --bs-*, not --sas-*, so it
+     must be repointed here too or raw Bootstrap components stay unthemed.
+     -------------------------------------------------------------------- */
+  --bs-primary: var(--sas-primary-600);
+  --bs-primary-rgb: 37, 99, 235;
+  --bs-primary-text-emphasis: var(--sas-primary-900);
+  --bs-primary-bg-subtle: var(--sas-primary-50);
+  --bs-primary-border-subtle: var(--sas-primary-200);
+
+  --bs-secondary: var(--sas-gray-700);
+  --bs-secondary-rgb: 51, 65, 85;
+  --bs-secondary-text-emphasis: var(--sas-gray-900);
+  --bs-secondary-bg-subtle: var(--sas-gray-100);
+  --bs-secondary-border-subtle: var(--sas-gray-300);
+
+  --bs-success: var(--sas-success);
+  --bs-success-rgb: 5, 150, 105;
+  --bs-success-text-emphasis: #065f46;
+  --bs-success-bg-subtle: var(--sas-success-subtle);
+  --bs-success-border-subtle: #a7f3d0;
+
+  --bs-info: var(--sas-info);
+  --bs-info-rgb: 37, 99, 235;
+  --bs-info-text-emphasis: var(--sas-primary-900);
+  --bs-info-bg-subtle: var(--sas-info-subtle);
+  --bs-info-border-subtle: var(--sas-primary-200);
+
+  --bs-warning: var(--sas-warning);
+  --bs-warning-rgb: 217, 119, 6;
+  --bs-warning-text-emphasis: #78350f;
+  --bs-warning-bg-subtle: var(--sas-warning-subtle);
+  --bs-warning-border-subtle: #fde68a;
+
+  --bs-danger: var(--sas-danger);
+  --bs-danger-rgb: 220, 38, 38;
+  --bs-danger-text-emphasis: #7f1d1d;
+  --bs-danger-bg-subtle: var(--sas-danger-subtle);
+  --bs-danger-border-subtle: #fecaca;
+
+  --bs-light: var(--sas-gray-100);
+  --bs-light-rgb: 241, 245, 249;
+  --bs-light-bg-subtle: var(--sas-gray-50);
+  --bs-light-border-subtle: var(--sas-gray-200);
+
+  --bs-dark: var(--sas-gray-900);
+  --bs-dark-rgb: 15, 23, 42;
+  --bs-dark-bg-subtle: var(--sas-gray-100);
+  --bs-dark-border-subtle: var(--sas-gray-300);
+
+  --bs-gray: var(--sas-gray-500);
+  --bs-gray-rgb: 100, 116, 139;
+
+  --bs-body-font-family: var(--sas-font-sans);
 }
 
 /* --------------------------------------------------------------------------
@@ -98,6 +156,7 @@ body {
   font-family: var(--sas-font-sans);
   color: var(--sas-gray-800);
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01', 'ss02';
 }
 
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
@@ -122,7 +181,7 @@ a:hover { color: var(--sas-primary-700); }
   letter-spacing: -.005em;
   transition: transform .12s var(--sas-ease), box-shadow .18s var(--sas-ease), background-color .15s var(--sas-ease), border-color .15s var(--sas-ease);
 }
-.btn-sm { border-radius: var(--sas-radius-sm); }
+.btn-sm { border-radius: var(--sas-radius-md); }
 .btn-lg { border-radius: var(--sas-radius-lg); }
 
 .btn-primary {
@@ -182,7 +241,7 @@ a:hover { color: var(--sas-primary-700); }
   padding: .4em .65em;
   border-radius: var(--sas-radius-sm);
 }
-.badge.rounded-pill { border-radius: 50rem; }
+.badge.rounded-pill { border-radius: var(--sas-radius-sm); } /* Ichelon: chips never pill */
 .sas-badge-icon i { margin-right: .3rem; font-size: .85em; }
 
 /* Soft/"light" badges — Metronic's `badge-light-{color}` label convention */
@@ -231,21 +290,7 @@ a:hover { color: var(--sas-primary-700); }
 .sas-card-hero {
   border: 0;
   color: #fff;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(120deg, var(--sas-primary-500) 0%, #7b78e0 55%, #9b7be0 100%);
-}
-.sas-card-hero::after {
-  content: '';
-  position: absolute; right: -40px; top: -40px;
-  width: 220px; height: 220px; border-radius: 50%;
-  background: rgba(255, 255, 255, .12);
-}
-.sas-card-hero::before {
-  content: '';
-  position: absolute; right: 80px; bottom: -60px;
-  width: 160px; height: 160px; border-radius: 50%;
-  background: rgba(255, 255, 255, .08);
+  background: var(--sas-primary-600); /* Ichelon: flat, no gradients/glassmorphism as decoration */
 }
 .sas-card-hero > * { position: relative; z-index: 2; }
 
@@ -599,6 +644,56 @@ a:hover { color: var(--sas-primary-700); }
   font-size: var(--sas-fs-xs);
   font-weight: 600;
   padding: 1px 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Star rating input — used by patient-facing feedback forms
+   -------------------------------------------------------------------------- */
+.sas-star-rating__stars {
+  gap: .35rem;
+}
+.sas-star-rating__star {
+  border: 0;
+  background: transparent;
+  padding: .2rem;
+  cursor: pointer;
+  color: var(--sas-gray-300);
+  font-size: 2rem;
+  line-height: 1;
+  transition: color .15s var(--sas-ease), transform .15s var(--sas-ease);
+}
+.sas-star-rating__star:hover,
+.sas-star-rating__star:focus-visible {
+  transform: scale(1.12);
+}
+.sas-star-rating__star.is-filled {
+  color: #f59e0b;
+}
+.sas-star-rating__label {
+  margin-top: .5rem;
+  font-weight: 600;
+  font-size: var(--sas-fs-sm);
+  min-height: 1.2em;
+  color: var(--sas-gray-400);
+}
+.sas-star-rating__label.is-set {
+  color: var(--sas-gray-800);
+}
+
+/* --------------------------------------------------------------------------
+   Rating breakdown bars (reviews dashboard)
+   -------------------------------------------------------------------------- */
+.sas-rating-bar__track {
+  height: 8px;
+  background: var(--sas-gray-100);
+  border-radius: var(--sas-radius-sm);
+  overflow: hidden;
+}
+.sas-rating-bar__fill {
+  height: 100%;
+  background: var(--sas-primary);
+  border-radius: var(--sas-radius-sm);
+  transition: width .4s var(--sas-ease);
 }
 
 /* --------------------------------------------------------------------------

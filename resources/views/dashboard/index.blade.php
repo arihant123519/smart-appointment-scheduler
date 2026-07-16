@@ -34,7 +34,7 @@
   <div class="row g-3 mb-4">
     <div class="col-xl-3 col-sm-6">
       <x-stat-widget label="Today's Appointments" :value="$stats['today']" icon="fi-rr-calendar-clock"
-        bg="bg-primary-subtle" fg="text-primary" sparkId="sparkToday" sparkColor="#5955D1" :sparkSeries="$chartData" />
+        bg="bg-primary-subtle" fg="text-primary" sparkId="sparkToday" sparkColor="#2563EB" :sparkSeries="$chartData" />
     </div>
     <div class="col-xl-3 col-sm-6">
       <x-stat-widget label="Upcoming" :value="$stats['upcoming']" icon="fi-rr-clock"
@@ -224,7 +224,7 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header border-0 text-white {{ $alert ? 'bg-danger' : '' }}"
-               @if(!$alert) style="background:linear-gradient(120deg,var(--sas-primary-500),#7b78e0)" @endif>
+               @if(!$alert) style="background:var(--sas-primary-600)" @endif>
             <h5 class="modal-title d-flex align-items-center gap-2">
               <i class="fi {{ $alert ? 'fi-rr-bell-ring sas-pulse rounded-circle p-1' : 'fi-rr-calendar-clock' }}"></i>
               {{ $alert ? 'Missed appointment alert' : "Today's appointments" }}
@@ -279,7 +279,7 @@
   <script src="{{ asset('assets/libs/apexcharts/apexcharts.min.js') }}"></script>
   <script>
     (function () {
-      const purple = '#5955D1', green = '#17c653', red = '#f1416c';
+      const purple = '#2563EB', green = '#17c653', red = '#f1416c';
       const labels = @json($chartLabels);
       const totals = @json($chartData);
       const completed = @json($chartCompleted);
@@ -330,7 +330,7 @@
       (function () {
         const map = @json($statusBreakdown);
         const labelMap = @json(\App\Models\Appointment::STATUSES);
-        const colorMap = { booked:'#f6b100', confirmed:'#7239ea', checked_in:'#5955D1', completed:'#17c653', cancelled:'#adb5bd', no_show:'#f1416c' };
+        const colorMap = { booked:'#f6b100', confirmed:'#7239ea', checked_in:'#2563EB', completed:'#17c653', cancelled:'#adb5bd', no_show:'#f1416c' };
         const keys = Object.keys(map);
         new ApexCharts(document.querySelector('#statusDonut'), {
           chart: { type: 'donut', height: 280, fontFamily: 'Inter, sans-serif' },

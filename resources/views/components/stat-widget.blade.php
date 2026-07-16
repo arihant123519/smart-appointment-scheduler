@@ -7,7 +7,7 @@
   'delta' => null,
   'deltaUp' => true,
   'sparkId' => null,
-  'sparkColor' => '#5955D1',
+  'sparkColor' => '#2563EB',
   'sparkSeries' => null,
 ])
 <div {{ $attributes->class(['card', 'sas-card-hover', 'h-100']) }} style="position:relative;overflow:hidden">

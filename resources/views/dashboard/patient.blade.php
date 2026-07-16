@@ -155,7 +155,7 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header border-0 text-white {{ $alert ? 'bg-danger' : '' }}"
-               @if(!$alert) style="background:linear-gradient(120deg,var(--sas-primary-500),#7b78e0)" @endif>
+               @if(!$alert) style="background:var(--sas-primary-600)" @endif>
             <h5 class="modal-title d-flex align-items-center gap-2">
               <i class="fi {{ $alert ? 'fi-rr-bell-ring sas-pulse rounded-circle p-1' : 'fi-rr-calendar-clock' }}"></i>
               {{ $alert ? 'You missed an appointment' : "You have an appointment today" }}
@@ -213,7 +213,7 @@
   <script src="{{ asset('assets/libs/apexcharts/apexcharts.min.js') }}"></script>
   <script>
     (function () {
-      const purple = '#5955D1';
+      const purple = '#2563EB';
 
       // Animated counters are handled globally in layouts/app.blade.php
       // (any element with class "sas-count"/data-count-to opts in automatically).

@@ -237,7 +237,7 @@
       chart: { type: 'donut', height: 300, fontFamily: 'Inter, sans-serif' },
       series: @json(array_values($byChannel)),
       labels: @json(array_map('ucfirst', array_keys($byChannel))),
-      colors: ['#5955D1', '#17c653', '#7239ea', '#f6b100', '#f1416c'],
+      colors: ['#2563EB', '#17c653', '#7239ea', '#f6b100', '#f1416c'],
       legend: { position: 'bottom' },
     }).render().then(() => sasUnskeleton('#channelChart'));
 
@@ -245,7 +245,7 @@
       chart: { type: 'bar', height: 320, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       series: [{ name: 'Appointments', data: @json($utilization->pluck('count')) }],
       xaxis: { categories: @json($utilization->pluck('name')) },
-      colors: ['#5955D1'],
+      colors: ['#2563EB'],
       plotOptions: { bar: { borderRadius: 6, columnWidth: '45%' } },
       dataLabels: { enabled: false },
       grid: { borderColor: '#eef0f4', strokeDashArray: 4 },
@@ -257,7 +257,7 @@
       xaxis: { categories: @json(array_keys($funnel)) },
       plotOptions: { bar: { horizontal: true, borderRadius: 6, distributed: true } },
       legend: { show: false },
-      colors: ['#5955D1', '#7239ea', '#9b7be0', '#17c653', '#9aa1ad', '#f1416c'],
+      colors: ['#2563EB', '#7239ea', '#93c5fd', '#17c653', '#9aa1ad', '#f1416c'],
       dataLabels: { enabled: true },
       grid: { borderColor: '#eef0f4', strokeDashArray: 4 },
     }).render().then(() => sasUnskeleton('#funnelChart'));

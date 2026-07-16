@@ -43,7 +43,7 @@
   </div>
   <div class="col-md-6">
     <label class="form-label">Primary color</label>
-    <input type="color" name="primary_color" class="form-control form-control-color @error('primary_color') is-invalid @enderror" value="{{ old('primary_color', $clinic->primary_color ?? '#5955d1') }}">
+    <input type="color" name="primary_color" class="form-control form-control-color @error('primary_color') is-invalid @enderror" value="{{ old('primary_color', $clinic->primary_color ?? '#2563eb') }}">
     @error('primary_color')<div class="invalid-feedback">{{ $message }}</div>@enderror
     <div class="form-text">Best-effort accent color for buttons/links on this clinic's pages.</div>
   </div>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="theme-color" content="#5955D1">
+  <meta name="theme-color" content="#2563EB">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'Dashboard') | {{ config('app.name') }}</title>
@@ -285,7 +285,7 @@
           series: [{ data: data }],
           stroke: { curve: 'smooth', width: 2 },
           fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0 } },
-          colors: [el.dataset.color || '#5955D1'],
+          colors: [el.dataset.color || '#2563EB'],
           tooltip: { enabled: false },
         }).render();
       });

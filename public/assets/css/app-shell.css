@@ -4,11 +4,11 @@
 :root {
   --sas-sidebar-width: 268px;
   --sas-topbar-height: 70px;
-  --sas-primary: var(--sas-primary-500, #5955D1);
+  --sas-primary: var(--sas-primary-600, #2563EB);
 }
 
 body {
-  background: var(--sas-gray-50, #f5f6fa);
+  background: var(--sas-gray-100, #f1f5f9); /* Ichelon: slate-100 canvas */
 }
 
 .sas-layout {
@@ -183,8 +183,7 @@ body {
 
 .sas-topbar {
   height: var(--sas-topbar-height);
-  background: rgba(255, 255, 255, .92);
-  backdrop-filter: blur(8px);
+  background: #ffffff; /* Ichelon: flat, no glassmorphism */
   border-bottom: 1px solid var(--sas-gray-100, #eceef2);
   display: flex;
   align-items: center;

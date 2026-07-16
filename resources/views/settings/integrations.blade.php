@@ -23,7 +23,7 @@
     color:var(--sas-gray-600); background:transparent; transition:all .15s ease; display:flex; align-items:center; gap:.45rem;
   }
   .sas-ai-tabs .nav-link:hover{ color:var(--sas-primary-700); background:var(--sas-primary-50); }
-  .sas-ai-tabs .nav-link.active{ color:#fff; background:linear-gradient(135deg,var(--sas-primary-500),#7b78e0); box-shadow:0 .35rem .85rem rgba(89,85,209,.3); }
+  .sas-ai-tabs .nav-link.active{ color:#fff; background:var(--sas-primary-600); }
 
   /* "Other pending items" list rows */
   .sas-info-row{ display:flex; gap:.9rem; padding:.85rem 0; border-bottom:1px solid var(--sas-gray-100); }

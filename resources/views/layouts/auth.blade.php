@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="theme-color" content="#5955D1">
+  <meta name="theme-color" content="#2563EB">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>@yield('title', 'Sign In') | {{ config('app.name') }}</title>
   <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/sas-ui.css') }}">
   <style>
-    body { background: var(--sas-gray-50); }
+    body { background: var(--sas-gray-100); }
     .sas-auth-shell { min-height: 100vh; display: flex; }
     .sas-auth-card .card { box-shadow: var(--sas-shadow-lg); border-radius: var(--sas-radius-xl); }
     .sas-auth-brand {
@@ -26,15 +26,7 @@
       flex-direction: column;
       justify-content: space-between;
       padding: 3rem;
-      background: linear-gradient(145deg, var(--sas-primary-500) 0%, #7b78e0 55%, #9b7be0 100%);
-    }
-    .sas-auth-brand::after {
-      content: ''; position: absolute; right: -60px; top: -60px;
-      width: 280px; height: 280px; border-radius: 50%; background: rgba(255,255,255,.10);
-    }
-    .sas-auth-brand::before {
-      content: ''; position: absolute; left: -80px; bottom: -100px;
-      width: 320px; height: 320px; border-radius: 50%; background: rgba(255,255,255,.08);
+      background: var(--sas-primary-600); /* Ichelon: flat, no gradients/glassmorphism as decoration */
     }
     .sas-auth-brand > * { position: relative; z-index: 1; }
     .sas-auth-brand__logo { display: flex; align-items: center; gap: .65rem; font-weight: 700; font-size: 1.15rem; }

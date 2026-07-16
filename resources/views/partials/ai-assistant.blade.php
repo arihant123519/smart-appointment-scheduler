@@ -1,46 +1,45 @@
 {{-- Global AI navigation assistant — floating widget for every signed-in user. --}}
 <style>
+  /* Ichelon: flat, no gradients-as-decoration, no glow shadows, chips/panels never pill */
   #sasAiFab{position:fixed;right:22px;bottom:22px;z-index:1085;width:60px;height:60px;border-radius:50%;
-    background:linear-gradient(135deg,#5955D1,#8a87e6);color:#fff;border:0;box-shadow:0 8px 24px rgba(89,85,209,.5);
+    background:var(--sas-primary-600);color:#fff;border:0;box-shadow:var(--sas-shadow-md);
     font-size:23px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
-  #sasAiFab:hover{transform:scale(1.08) rotate(6deg)}
-  #sasAiFab::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid rgba(89,85,209,.5);
+  #sasAiFab:hover{transform:scale(1.05)}
+  #sasAiFab::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid var(--sas-primary-300);
     animation:sasFabPulse 2s infinite}
   @keyframes sasFabPulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.5);opacity:0}}
   #sasAiPanel{position:fixed;right:22px;bottom:92px;z-index:1086;width:360px;max-width:calc(100vw - 44px);
-    background:#fff;border:0;border-radius:18px;box-shadow:0 16px 50px rgba(20,20,50,.22);
+    background:#fff;border:1px solid var(--sas-gray-300);border-radius:var(--sas-radius-2xl);box-shadow:var(--sas-shadow-lg);
     display:none;overflow:hidden;transform-origin:bottom right}
   #sasAiPanel.open{display:block;animation:sasPanelIn .2s ease-out}
   @keyframes sasPanelIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
-  #sasAiPanel .sas-ai-head{background:linear-gradient(135deg,#5955D1,#8a87e6);color:#fff;padding:14px 16px;
-    font-weight:600;display:flex;align-items:center;gap:8px;position:relative;overflow:hidden}
-  #sasAiPanel .sas-ai-head::after{content:'';position:absolute;right:-20px;top:-30px;width:90px;height:90px;
-    border-radius:50%;background:rgba(255,255,255,.12)}
-  #sasAiPanel .sas-ai-head .sas-ai-headicon{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.2);
+  #sasAiPanel .sas-ai-head{background:var(--sas-primary-600);color:#fff;padding:14px 16px;
+    font-weight:600;display:flex;align-items:center;gap:8px}
+  #sasAiPanel .sas-ai-head .sas-ai-headicon{width:30px;height:30px;border-radius:var(--sas-radius-md);background:rgba(255,255,255,.2);
     display:grid;place-items:center}
   #sasAiLog{padding:14px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;font-size:.9rem;
-    background:#fafaff}
+    background:var(--sas-gray-50)}
   #sasAiLog .sas-row{display:flex;gap:8px;max-width:90%}
   #sasAiLog .sas-row.me{align-self:flex-end;flex-direction:row-reverse}
   #sasAiLog .av{width:28px;height:28px;border-radius:50%;flex:0 0 28px;display:grid;place-items:center;color:#fff;font-size:.8rem}
-  #sasAiLog .sas-row.bot .av{background:linear-gradient(135deg,#5955D1,#8a87e6)}
-  #sasAiLog .sas-row.me .av{background:#1f2140}
-  #sasAiLog .b{padding:8px 12px;border-radius:13px;line-height:1.4}
-  #sasAiLog .sas-row.bot .b{background:#fff;border:1px solid #ececf6;border-top-left-radius:4px}
-  #sasAiLog .sas-row.me .b{background:#5955D1;color:#fff;border-top-right-radius:4px}
-  .sas-ai-quick{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px;background:#fafaff}
-  .sas-ai-quick button{border:1px solid #d9d8f0;background:#fff;color:#5955D1;border-radius:999px;padding:4px 11px;
+  #sasAiLog .sas-row.bot .av{background:var(--sas-primary-600)}
+  #sasAiLog .sas-row.me .av{background:var(--sas-gray-700)}
+  #sasAiLog .b{padding:8px 12px;border-radius:var(--sas-radius-lg);line-height:1.4}
+  #sasAiLog .sas-row.bot .b{background:#fff;border:1px solid var(--sas-gray-200);border-top-left-radius:4px}
+  #sasAiLog .sas-row.me .b{background:var(--sas-primary-600);color:#fff;border-top-right-radius:4px}
+  .sas-ai-quick{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px;background:var(--sas-gray-50)}
+  .sas-ai-quick button{border:1px solid var(--sas-primary-200);background:#fff;color:var(--sas-primary-700);border-radius:var(--sas-radius-sm);padding:4px 11px;
     font-size:.76rem;cursor:pointer;transition:all .15s}
-  .sas-ai-quick button:hover{background:#5955D1;color:#fff;border-color:#5955D1}
-  #sasAiPanel .sas-ai-foot{display:flex;gap:8px;padding:12px;border-top:1px solid #eee;background:#fff}
-  #sasAiPanel .sas-ai-foot input{flex:1;border:1px solid #ddd;border-radius:999px;padding:9px 14px;font-size:.9rem}
-  #sasAiPanel .sas-ai-foot input:focus{outline:none;border-color:#8a87e6;box-shadow:0 0 0 3px rgba(138,135,230,.18)}
-  #sasAiPanel .sas-ai-foot button{border:0;background:linear-gradient(135deg,#5955D1,#8a87e6);color:#fff;
+  .sas-ai-quick button:hover{background:var(--sas-primary-600);color:#fff;border-color:var(--sas-primary-600)}
+  #sasAiPanel .sas-ai-foot{display:flex;gap:8px;padding:12px;border-top:1px solid var(--sas-gray-200);background:#fff}
+  #sasAiPanel .sas-ai-foot input{flex:1;border:1px solid var(--sas-gray-300);border-radius:var(--sas-radius-md);padding:9px 14px;font-size:.9rem}
+  #sasAiPanel .sas-ai-foot input:focus{outline:none;border-color:var(--sas-primary-400);box-shadow:0 0 0 3px var(--sas-primary-100)}
+  #sasAiPanel .sas-ai-foot button{border:0;background:var(--sas-primary-600);color:#fff;
     border-radius:50%;width:40px;height:40px;cursor:pointer;flex:0 0 40px}
-  .sas-ai-chip{display:inline-block;margin-top:6px;font-size:.78rem;background:#fff;border:1px solid #5955D1;color:#5955D1;
-    border-radius:20px;padding:4px 13px;text-decoration:none}
-  .sas-ai-chip:hover{background:#5955D1;color:#fff}
-  .sas-ai-typing span{display:inline-block;width:6px;height:6px;margin:0 1px;background:#9a98c4;border-radius:50%;
+  .sas-ai-chip{display:inline-block;margin-top:6px;font-size:.78rem;background:#fff;border:1px solid var(--sas-primary-600);color:var(--sas-primary-600);
+    border-radius:var(--sas-radius-sm);padding:4px 13px;text-decoration:none}
+  .sas-ai-chip:hover{background:var(--sas-primary-600);color:#fff}
+  .sas-ai-typing span{display:inline-block;width:6px;height:6px;margin:0 1px;background:var(--sas-gray-400);border-radius:50%;
     animation:sasDot 1.2s infinite ease-in-out both}
   .sas-ai-typing span:nth-child(2){animation-delay:.15s}.sas-ai-typing span:nth-child(3){animation-delay:.3s}
   @keyframes sasDot{0%,80%,100%{transform:scale(.6);opacity:.5}40%{transform:scale(1);opacity:1}}
@@ -64,10 +63,10 @@
     </div>
   </div>
   <div class="sas-ai-quick" id="sasAiQuick">
-    <button type="button" data-fill="open patients list">👥 Patients</button>
-    <button type="button" data-fill="show reports">📊 Reports</button>
-    <button type="button" data-fill="open calendar">📅 Calendar</button>
-    <button type="button" data-fill="new appointment">➕ New appointment</button>
+    <button type="button" data-fill="open patients list"><i class="fi fi-rr-users me-1"></i>Patients</button>
+    <button type="button" data-fill="show reports"><i class="fi fi-rr-chart-pie-alt me-1"></i>Reports</button>
+    <button type="button" data-fill="open calendar"><i class="fi fi-rr-calendar me-1"></i>Calendar</button>
+    <button type="button" data-fill="new appointment"><i class="fi fi-rr-plus me-1"></i>New appointment</button>
   </div>
   <div class="sas-ai-foot">
     <input type="text" id="sasAiInput" placeholder="Where do you want to go?" autocomplete="off">

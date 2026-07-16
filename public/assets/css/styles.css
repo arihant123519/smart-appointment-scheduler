@@ -18241,7 +18241,7 @@ html[data-bs-theme=dark] .text-bg-light {
 }
 .badge {
   line-height: 1.5;
-  block-size: 26px;
+  /* block-size: 26px; */
   min-inline-size: 26px;
   padding: 5px 10px;
 }

@@ -16,7 +16,7 @@
   </div>
   <div class="col-md-3">
     <label class="form-label">Colour</label>
-    <input type="color" name="color" class="form-control form-control-color @error('color') is-invalid @enderror" value="{{ old('color', $service->color ?? '#5955D1') }}">
+    <input type="color" name="color" class="form-control form-control-color @error('color') is-invalid @enderror" value="{{ old('color', $service->color ?? '#2563EB') }}">
     @error('color')<div class="invalid-feedback">{{ $message }}</div>@enderror
   </div>
   <div class="col-md-6">

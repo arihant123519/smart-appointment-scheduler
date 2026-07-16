@@ -19,11 +19,11 @@
     #calendar { --fc-border-color: var(--sas-gray-100, #eef0f4); --fc-today-bg-color: var(--sas-primary-50, #f4f3ff); --fc-now-indicator-color: var(--sas-danger, #dc3545); }
     #calendar .fc-toolbar-title { font-size: 1.25rem; font-weight: 700; color: var(--sas-gray-900, #1f2140); }
     #calendar .fc-col-header-cell-cushion { color: var(--sas-gray-600, #6c757d); font-weight: 600; text-decoration: none; padding: .5rem; }
-    #calendar .fc-button-primary { background: #fff; border-color: #e3e3ee; color: var(--sas-primary-500, #5955D1); font-weight: 600;
+    #calendar .fc-button-primary { background: #fff; border-color: #e3e3ee; color: var(--sas-primary-500, #3B82F6); font-weight: 600;
       text-transform: capitalize; box-shadow: none; }
-    #calendar .fc-button-primary:not(:disabled):hover { background: var(--sas-primary-50, #f1f0fb); border-color: #c9c7ef; color: var(--sas-primary-500, #5955D1); }
+    #calendar .fc-button-primary:not(:disabled):hover { background: var(--sas-primary-50, #eff6ff); border-color: #c9c7ef; color: var(--sas-primary-500, #3B82F6); }
     #calendar .fc-button-primary:not(:disabled).fc-button-active,
-    #calendar .fc-button-primary:not(:disabled):active { background: var(--sas-primary-500, #5955D1); border-color: var(--sas-primary-500, #5955D1); color: #fff; }
+    #calendar .fc-button-primary:not(:disabled):active { background: var(--sas-primary-500, #3B82F6); border-color: var(--sas-primary-500, #3B82F6); color: #fff; }
     #calendar .fc-button-primary:disabled { background: #f5f5f9; border-color: #eee; color: #adb5bd; }
     #calendar .fc-event { border: 0; border-radius: 7px; padding: 1px 4px; font-weight: 600; font-size: .76rem;
       box-shadow: 0 1px 3px rgba(31,33,64,.15); cursor: pointer; transition: transform .1s; }
@@ -50,7 +50,7 @@
       <div class="sas-cal-legend ms-auto">
         <span><i style="background:#f6b100"></i> Booked</span>
         <span><i style="background:#7239ea"></i> Confirmed</span>
-        <span><i style="background:#5955D1"></i> Checked in</span>
+        <span><i style="background:#2563EB"></i> Checked in</span>
         <span><i style="background:#17c653"></i> Completed</span>
         <span><i style="background:#f1416c"></i> No-show</span>
         <span><i style="background:#adb5bd"></i> Cancelled</span>
