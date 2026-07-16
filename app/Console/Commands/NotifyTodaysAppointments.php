@@ -30,7 +30,7 @@ class NotifyTodaysAppointments extends Command
                     'patient-today-'.$appointment->id,
                     'You have an appointment today',
                     "Today at {$time} with {$appointment->provider->name} ({$appointment->service?->name}).",
-                    route('dashboard'),
+                    route('dashboard', [], false),
                 );
             }
 
@@ -40,7 +40,7 @@ class NotifyTodaysAppointments extends Command
                     'provider-today-'.$appointment->id,
                     'Appointment today',
                     "Today at {$time}: {$appointment->patient?->name} ({$appointment->service?->name}).",
-                    route('appointments.show', $appointment),
+                    route('appointments.show', $appointment, false),
                 );
             }
         }

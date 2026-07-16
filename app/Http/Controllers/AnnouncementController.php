@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Announcement;
+use App\Models\Clinic;
+use App\Models\Provider;
+use App\Models\Service;
+use App\Models\User;
 use App\Services\AnnouncementService;
 use App\Support\WhatsappTemplate;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +25,10 @@ class AnnouncementController extends Controller
         $tokens = WhatsappTemplate::tokens();
         $defaultVariables = ['patient_name', 'message'];
 
-        return view('announcements.index', compact('announcements', 'audiences', 'tokens', 'defaultVariables'));
+        return view('announcements.index', array_merge(
+            compact('announcements', 'audiences', 'tokens', 'defaultVariables'),
+            $this->filterOptions()
+        ));
     }
 
     public function store(Request $request, AnnouncementService $service): RedirectResponse
@@ -38,6 +45,7 @@ class AnnouncementController extends Controller
             'body' => $data['body'],
             'channel' => implode(',', $data['channels']),
             'audience' => $data['audience'],
+            'filters' => $data['audience'] === 'custom' ? $this->normalizeFilters($data) : null,
             'recipients_count' => 0,
             'send_at' => $scheduled ? $sendAt : null,
             'status' => $scheduled ? 'scheduled' : 'sent',
@@ -59,7 +67,10 @@ class AnnouncementController extends Controller
         $audiences = Announcement::AUDIENCES;
         $tokens = WhatsappTemplate::tokens();
 
-        return view('announcements.edit', compact('announcement', 'audiences', 'tokens'));
+        return view('announcements.edit', array_merge(
+            compact('announcement', 'audiences', 'tokens'),
+            $this->filterOptions()
+        ));
     }
 
     public function update(Request $request, Announcement $announcement): RedirectResponse
@@ -71,6 +82,7 @@ class AnnouncementController extends Controller
             'body' => $data['body'],
             'channel' => implode(',', $data['channels']),
             'audience' => $data['audience'],
+            'filters' => $data['audience'] === 'custom' ? $this->normalizeFilters($data) : null,
         ] + $this->waFields($data));
 
         // A new offset reschedules the announcement (works even for a previously
@@ -115,6 +127,18 @@ class AnnouncementController extends Controller
             'channels' => ['required', 'array', 'min:1'],
             'channels.*' => ['in:email,whatsapp'],
             'audience' => ['required', Rule::in(array_keys(Announcement::AUDIENCES))],
+            'filters' => ['nullable', 'array'],
+            'filters.service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'filters.provider_id' => ['nullable', 'integer', 'exists:providers,id'],
+            'filters.status' => ['nullable', Rule::in(array_keys(\App\Models\Appointment::STATUSES))],
+            'filters.risk_min' => ['nullable', 'integer', 'between:0,100'],
+            'filters.risk_max' => ['nullable', 'integer', 'between:0,100'],
+            'filters.date' => ['nullable', 'date'],
+            'filters.date_from' => ['nullable', 'date'],
+            'filters.date_to' => ['nullable', 'date'],
+            'filters.clinic_id' => ['nullable', 'integer', 'exists:clinics,id'],
+            'filters.user_ids' => ['nullable', 'array'],
+            'filters.user_ids.*' => ['integer', 'exists:users,id'],
             // WhatsApp template (required only when WhatsApp is one of the channels).
             'wa_template_id' => [
                 'nullable', 'string', 'max:255',
@@ -150,6 +174,36 @@ class AnnouncementController extends Controller
             'wa_namespace' => $data['wa_namespace'] ?? null,
             'wa_variables' => array_values(array_filter($data['wa_variables'] ?? [])),
         ];
+    }
+
+    /** Dropdown data for the custom-audience filter builder. */
+    private function filterOptions(): array
+    {
+        return [
+            'filterServices' => Service::forCurrentClinic()->orderBy('name')->get(),
+            'filterProviders' => Provider::forCurrentClinic()->with('user')->get(),
+            'filterClinics' => auth()->user()->hasRole('system_admin') ? Clinic::orderBy('name')->get() : collect(),
+            'filterUsers' => User::role('patient')->forCurrentClinic()->orderBy('name')->get(),
+        ];
+    }
+
+    /** Strip empty/null entries from the submitted filters.* inputs. */
+    private function normalizeFilters(array $data): array
+    {
+        $f = $data['filters'] ?? [];
+
+        return array_filter([
+            'service_id' => $f['service_id'] ?? null,
+            'provider_id' => $f['provider_id'] ?? null,
+            'status' => $f['status'] ?? null,
+            'risk_min' => $f['risk_min'] ?? null,
+            'risk_max' => $f['risk_max'] ?? null,
+            'date' => $f['date'] ?? null,
+            'date_from' => $f['date_from'] ?? null,
+            'date_to' => $f['date_to'] ?? null,
+            'clinic_id' => $f['clinic_id'] ?? null,
+            'user_ids' => array_values(array_filter($f['user_ids'] ?? [])),
+        ], fn ($v) => $v !== null && $v !== '' && $v !== []);
     }
 
     /** Turn the hours/days offset into an absolute send time (null = send now). */

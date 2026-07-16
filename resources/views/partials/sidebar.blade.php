@@ -102,6 +102,9 @@
           <a href="{{ route('qrcodes.index') }}" class="sas-nav__link {{ $r('qrcodes.*') }}">
             <i class="fi fi-rr-qrcode"></i> QR Codes
           </a>
+          <a href="{{ route('reviewqrcodes.index') }}" class="sas-nav__link {{ $r('reviewqrcodes.*') }}">
+            <i class="fi fi-rr-star"></i> Review QR Codes
+          </a>
         @endcan
       </div>
     @endcanany
@@ -171,7 +174,7 @@
     <a href="{{ route('profile.edit') }}" class="sas-nav__link {{ $r('profile.*') }}">
       <i class="fi fi-rr-user"></i> My Profile
     </a>
-    <form method="POST" action="{{ route('logout') }}">
+    <form method="POST" action="{{ route('logout') }}" id="sasLogoutForm">
       @csrf
       <button type="submit" class="sas-nav__link border-0 bg-transparent w-100 text-danger">
         <i class="fi fi-rr-exit"></i> Log Out
@@ -230,9 +233,11 @@
     }
 
     function index() {
-      return Array.from(sidebar.querySelectorAll('a.sas-nav__link[href]')).map(function (a) {
+      const links = Array.from(document.querySelectorAll('a.sas-nav__link[href], .sas-cmdk-item[href]')).map(function (a) {
         return { label: a.textContent.trim().replace(/\s+/g, ' '), href: a.getAttribute('href'), icon: (a.querySelector('i') || {}).className || 'fi fi-rr-arrow-right' };
       });
+      links.push({ label: 'Log Out', href: null, icon: 'fi fi-rr-exit', action: 'logout' });
+      return links;
     }
 
     function render(items) {
@@ -242,11 +247,23 @@
         return;
       }
       items.slice(0, 8).forEach(function (item, i) {
-        const a = document.createElement('a');
-        a.href = item.href;
-        a.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2' + (i === 0 ? ' active' : '');
-        a.innerHTML = '<i class="' + item.icon + '"></i> ' + item.label;
-        results.appendChild(a);
+        const el = document.createElement(item.href ? 'a' : 'button');
+        let cls = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
+        if (item.href) {
+          el.href = item.href;
+        } else {
+          el.type = 'button';
+          cls += ' w-100 text-start border-0 bg-transparent';
+          if (item.action === 'logout') {
+            el.addEventListener('click', function () {
+              const form = document.getElementById('sasLogoutForm');
+              if (form) form.requestSubmit();
+            });
+          }
+        }
+        el.className = cls + (i === 0 ? ' active' : '');
+        el.innerHTML = '<i class="' + item.icon + '"></i> ' + item.label;
+        results.appendChild(el);
       });
     }
 
@@ -264,8 +281,8 @@
     input.addEventListener('input', filter);
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
-        const first = results.querySelector('a');
-        if (first) window.location = first.getAttribute('href');
+        const first = results.querySelector('a, button');
+        if (first) first.click();
       }
     });
   })();

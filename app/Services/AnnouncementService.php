@@ -38,8 +38,49 @@ class AnnouncementService
             'providers' => (clone $base)->role('provider')->get(),
             'all' => (clone $base)->get(),
             'scheduled' => $this->scheduledAppointmentPatients($clinicId),
+            'custom' => $this->filteredRecipients($announcement, $clinicId),
             default => (clone $base)->role('patient')->get(), // 'patients'
         };
+    }
+
+    /**
+     * Recipients for a 'custom' audience: patients whose appointments match
+     * the announcement's stored filter criteria, unioned with any manually
+     * selected user ids. If no appointment-level criteria are set, only the
+     * manually selected users are returned (no unintended "everyone" fallback).
+     *
+     * @return Collection<int, User>
+     */
+    private function filteredRecipients(Announcement $announcement, ?int $clinicId): Collection
+    {
+        $f = $announcement->filters ?? [];
+        $filterClinicId = $f['clinic_id'] ?? $clinicId;
+
+        $apptCriteriaKeys = ['service_id', 'provider_id', 'status', 'risk_min', 'risk_max', 'date', 'date_from', 'date_to'];
+        $hasApptCriteria = ! empty(array_filter(
+            array_intersect_key($f, array_flip($apptCriteriaKeys)),
+            fn ($v) => $v !== null && $v !== ''
+        ));
+
+        $patientIds = collect();
+        if ($hasApptCriteria) {
+            $patientIds = Appointment::query()
+                ->when($filterClinicId, fn ($q) => $q->where('clinic_id', $filterClinicId))
+                ->when($f['service_id'] ?? null, fn ($q, $v) => $q->where('service_id', $v))
+                ->when($f['provider_id'] ?? null, fn ($q, $v) => $q->where('provider_id', $v))
+                ->when($f['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+                ->when(isset($f['risk_min']) && $f['risk_min'] !== '', fn ($q) => $q->where('no_show_score', '>=', $f['risk_min']))
+                ->when(isset($f['risk_max']) && $f['risk_max'] !== '', fn ($q) => $q->where('no_show_score', '<=', $f['risk_max']))
+                ->when($f['date'] ?? null, fn ($q, $v) => $q->whereDate('start_at', $v))
+                ->when($f['date_from'] ?? null, fn ($q, $v) => $q->whereDate('start_at', '>=', $v))
+                ->when($f['date_to'] ?? null, fn ($q, $v) => $q->whereDate('start_at', '<=', $v))
+                ->pluck('patient_id')->unique();
+        }
+
+        $manualIds = collect($f['user_ids'] ?? []);
+
+        return User::whereIn('id', $patientIds->merge($manualIds)->unique())
+            ->where('is_active', true)->get();
     }
 
     /** @return Collection<int, User> */

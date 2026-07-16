@@ -12,7 +12,7 @@ class PatientController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = User::role('patient')->withCount('appointments')->orderBy('name');
+        $query = User::role('patient')->forCurrentClinic()->withCount('appointments')->orderBy('name');
 
         if ($request->filled('q')) {
             $term = $request->string('q');
@@ -55,7 +55,11 @@ class PatientController extends Controller
     public function show(User $patient): View
     {
         abort_unless($patient->hasRole('patient'), 404);
-        $patient->load(['appointments' => fn ($q) => $q->with(['provider.user', 'service'])->orderByDesc('start_at')]);
+        $patient->load([
+            'appointments' => fn ($q) => $q->with(['provider.user', 'service'])->orderByDesc('start_at'),
+            'payments' => fn ($q) => $q->orderByDesc('created_at'),
+            'reviews' => fn ($q) => $q->with('provider.user')->orderByDesc('created_at'),
+        ]);
 
         return view('patients.show', compact('patient'));
     }

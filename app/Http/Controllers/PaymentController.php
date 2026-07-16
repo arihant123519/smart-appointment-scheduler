@@ -14,15 +14,17 @@ class PaymentController extends Controller
 {
     public function index(): View
     {
-        $payments = Payment::with(['patient', 'appointment'])->orderByDesc('created_at')->get();
+        $scopeToClinic = fn ($q) => $q->whereHas('patient', fn ($qq) => $qq->forCurrentClinic());
+
+        $payments = Payment::with(['patient', 'appointment'])->tap($scopeToClinic)->orderByDesc('created_at')->get();
 
         $totals = [
-            'collected' => Payment::where('status', 'paid')->whereIn('type', ['copay', 'fee', 'deposit', 'no_show_fee'])->sum('amount'),
-            'refunded' => Payment::where('type', 'refund')->sum('amount'),
-            'pending' => Payment::where('status', 'pending')->sum('amount'),
+            'collected' => Payment::where('status', 'paid')->whereIn('type', ['copay', 'fee', 'deposit', 'no_show_fee'])->tap($scopeToClinic)->sum('amount'),
+            'refunded' => Payment::where('type', 'refund')->tap($scopeToClinic)->sum('amount'),
+            'pending' => Payment::where('status', 'pending')->tap($scopeToClinic)->sum('amount'),
         ];
 
-        $pendingDeposits = Payment::pendingDeposits()->with(['patient', 'appointment.provider.user'])
+        $pendingDeposits = Payment::pendingDeposits()->with(['patient', 'appointment.provider.user'])->tap($scopeToClinic)
             ->orderBy('expires_at')->get();
 
         $clinicId = auth()->user()->clinic_id;
@@ -55,7 +57,7 @@ class PaymentController extends Controller
         $payment = $payments->charge($appointment, (float) $data['amount'], $data['type'], $data['method']);
         AuditLog::record('payment_charged', $payment, null, $payment->toArray());
 
-        return back()->with('success', 'Payment of '.($payment->currency === 'INR' ? '₹' : '$').number_format($data['amount'], 2).' recorded.');
+        return back()->with('success', 'Payment of ₹'.number_format($data['amount'], 2).' recorded.');
     }
 
     public function refund(Payment $payment, PaymentService $payments): RedirectResponse

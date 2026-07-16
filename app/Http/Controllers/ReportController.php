@@ -17,10 +17,13 @@ use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function index(RevenueLeakService $revenueLeaks, BenchmarkingService $benchmarking, ExperimentService $experiments): View
+    public function index(Request $request, RevenueLeakService $revenueLeaks, BenchmarkingService $benchmarking, ExperimentService $experiments): View
     {
-        $m = $this->metrics();
-        $clinic = auth()->user()->clinic ?? Clinic::first();
+        $isSystemAdmin = auth()->user()->hasRole('system_admin');
+        $clinicId = $isSystemAdmin ? $request->integer('clinic_id') ?: null : auth()->user()->clinic_id;
+
+        $m = $this->metrics($clinicId);
+        $clinic = $clinicId ? Clinic::find($clinicId) : (auth()->user()->clinic ?? Clinic::first());
 
         return view('reports.index', [
             'noShowRate' => $m['no_show_rate_pct'],
@@ -30,11 +33,13 @@ class ReportController extends Controller
             'byChannel' => $m['by_channel'],
             'utilization' => $m['utilization'],
             'experiments' => $experiments->allResults(),
-            'funnel' => $this->funnel(),
-            'flow' => $this->flowMetrics(),
+            'funnel' => $this->funnel($clinicId),
+            'flow' => $this->flowMetrics($clinicId),
             'revenueLeaks' => $revenueLeaks->detect(),
-            'heatmap' => $this->providerHeatmap(),
+            'heatmap' => $this->providerHeatmap($clinicId),
             'benchmark' => $clinic ? $benchmarking->compare($clinic) : null,
+            'clinics' => $isSystemAdmin ? Clinic::orderBy('name')->get() : collect(),
+            'selectedClinicId' => $clinicId,
         ]);
     }
 
@@ -44,7 +49,7 @@ class ReportController extends Controller
      *
      * @return array{providers: array<int,string>, days: array<int,string>, hours: array<int,int>, cells: array<string,int>}
      */
-    private function providerHeatmap(): array
+    private function providerHeatmap(?int $clinicId = null): array
     {
         $window = now()->subDays(30);
         $driver = DB::connection()->getDriverName();
@@ -53,11 +58,16 @@ class ReportController extends Controller
 
         $rows = Appointment::where('start_at', '>=', $window)
             ->active()
+            ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->forCurrentClinic()
             ->selectRaw("provider_id, $dowExpr as dow, $hourExpr as hour, count(*) as total")
             ->groupBy('provider_id', 'dow', 'hour')
             ->get();
 
-        $providers = Provider::with('user')->where('is_active', true)->get()->keyBy('id');
+        $providers = Provider::with('user')->where('is_active', true)
+            ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->forCurrentClinic()
+            ->get()->keyBy('id');
         $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         $hours = range(7, 19);
 
@@ -78,11 +88,13 @@ class ReportController extends Controller
     }
 
     /** Appointment status funnel over the last 30 days (booked → completed vs. lost). */
-    private function funnel(): array
+    private function funnel(?int $clinicId = null): array
     {
         $window = now()->subDays(30);
 
         $counts = Appointment::where('start_at', '>=', $window)
+            ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->forCurrentClinic()
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -102,10 +114,13 @@ class ReportController extends Controller
      * headline metric is `rescued`: conversations whose linked appointment
      * survived (isn't cancelled/no-show), i.e. the flow likely kept the visit.
      */
-    private function flowMetrics(): array
+    private function flowMetrics(?int $clinicId = null): array
     {
         $window = now()->subDays(30);
-        $base = WhatsappConversation::where('started_at', '>=', $window);
+        $base = WhatsappConversation::where('started_at', '>=', $window)
+            ->whereHas('appointment', fn ($q) => $q
+                ->when($clinicId, fn ($qq) => $qq->where('clinic_id', $clinicId))
+                ->forCurrentClinic());
 
         $started = (clone $base)->count();
         $completed = (clone $base)->where('status', 'completed')->count();
@@ -140,17 +155,19 @@ class ReportController extends Controller
     }
 
     /** Full metrics used to render the dashboard. */
-    private function metrics(): array
+    private function metrics(?int $clinicId = null): array
     {
         $window = now()->subDays(30);
+        $scopeAppt = fn ($q) => $q->when($clinicId, fn ($qq) => $qq->where('clinic_id', $clinicId))->forCurrentClinic();
+        $scopeProvider = fn ($q) => $q->when($clinicId, fn ($qq) => $qq->where('clinic_id', $clinicId))->forCurrentClinic();
 
-        $finished = Appointment::where('start_at', '>=', $window)
+        $finished = Appointment::where('start_at', '>=', $window)->tap($scopeAppt)
             ->whereIn('status', [Appointment::STATUS_COMPLETED, Appointment::STATUS_NO_SHOW])->count();
-        $noShows = Appointment::where('start_at', '>=', $window)
+        $noShows = Appointment::where('start_at', '>=', $window)->tap($scopeAppt)
             ->where('status', Appointment::STATUS_NO_SHOW)->count();
         $noShowRate = $finished > 0 ? round($noShows / $finished * 100, 1) : 0;
 
-        $byProvider = Provider::with('user')->get()->map(function ($p) use ($window) {
+        $byProvider = Provider::with('user')->tap($scopeProvider)->get()->map(function ($p) use ($window) {
             $fin = Appointment::where('provider_id', $p->id)->where('start_at', '>=', $window)
                 ->whereIn('status', [Appointment::STATUS_COMPLETED, Appointment::STATUS_NO_SHOW])->count();
             $ns = Appointment::where('provider_id', $p->id)->where('start_at', '>=', $window)
@@ -164,10 +181,11 @@ class ReportController extends Controller
             ];
         });
 
-        $byChannel = Appointment::select('channel', DB::raw('count(*) as total'))
+        $byChannel = Appointment::select('channel', DB::raw('count(*) as total'))->tap($scopeAppt)
             ->groupBy('channel')->pluck('total', 'channel')->toArray();
 
-        $utilization = Provider::with('user')->withCount(['appointments' => fn ($q) => $q->where('start_at', '>=', $window)])
+        $utilization = Provider::with('user')->tap($scopeProvider)
+            ->withCount(['appointments' => fn ($q) => $q->where('start_at', '>=', $window)])
             ->get()->map(fn ($p) => ['name' => $p->name, 'count' => $p->appointments_count]);
 
         return [

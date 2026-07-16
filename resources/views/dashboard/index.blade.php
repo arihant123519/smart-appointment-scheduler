@@ -247,20 +247,21 @@
               </ul>
             @endif
 
-            @if ($todaysAppointments->count())
+            @php $todaysScheduled = $todaysAppointments->whereNotIn('status', [\App\Models\Appointment::STATUS_NO_SHOW]); @endphp
+            @if ($todaysScheduled->count())
               <p class="text-muted mb-2">
-                You have <strong>{{ $todaysAppointments->count() }}</strong> appointment{{ $todaysAppointments->count() === 1 ? '' : 's' }} scheduled today.
+                You have <strong>{{ $todaysScheduled->count() }}</strong> appointment{{ $todaysScheduled->count() === 1 ? '' : 's' }} scheduled today.
               </p>
               <ul class="list-group list-group-flush">
-                @foreach ($todaysAppointments->take(5) as $a)
+                @foreach ($todaysScheduled->take(5) as $a)
                   <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                     <span><strong>{{ $a->start_at->format('g:i A') }}</strong> · {{ $a->patient->name }}</span>
                     <x-badge-status :color="$a->status_color" :label="$a->status_label" />
                   </li>
                 @endforeach
               </ul>
-              @if ($todaysAppointments->count() > 5)
-                <small class="text-muted">+{{ $todaysAppointments->count() - 5 }} more on the schedule below.</small>
+              @if ($todaysScheduled->count() > 5)
+                <small class="text-muted">+{{ $todaysScheduled->count() - 5 }} more on the schedule below.</small>
               @endif
             @endif
           </div>

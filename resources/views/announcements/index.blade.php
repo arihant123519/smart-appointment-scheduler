@@ -14,11 +14,16 @@
             @error('body')<div class="invalid-feedback">{{ $message }}</div>@enderror
           </div>
           <div class="mb-3"><label class="form-label">Audience</label>
-            <select name="audience" class="form-select">
-              @foreach ($audiences as $key => $label)
-                <option value="{{ $key }}" @selected(old('audience') === $key)>{{ $label }}</option>
-              @endforeach
-            </select>
+            <div class="input-group">
+              <select name="audience" id="audienceSelect" class="form-select">
+                @foreach ($audiences as $key => $label)
+                  <option value="{{ $key }}" @selected(old('audience') === $key)>{{ $label }}</option>
+                @endforeach
+              </select>
+              <button type="button" id="configureFiltersBtn" class="btn btn-outline-secondary d-none" data-bs-toggle="modal" data-bs-target="#broadcastFilters">
+                <i class="fi fi-rr-settings-sliders me-1"></i> Configure filters
+              </button>
+            </div>
           </div>
           @php $oldChannels = old('channels', ['email']); @endphp
           <div class="mb-3">
@@ -82,6 +87,81 @@
           </div>
           <button class="btn btn-primary w-100"><i class="fi fi-rr-paper-plane me-1"></i> Send / schedule announcement</button>
           <small class="text-muted d-block mt-2">Pick one or both channels. Each broadcast carries its own WhatsApp template. Leave <strong>Send in</strong> blank to send now (max 24 hours / 30 days ahead).</small>
+
+          <x-modal id="broadcastFilters" title="Custom audience filters">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small">Service</label>
+                <select name="filters[service_id]" class="form-select">
+                  <option value="">Any</option>
+                  @foreach ($filterServices as $s)
+                    <option value="{{ $s->id }}" @selected(old('filters.service_id') == $s->id)>{{ $s->name }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Provider</label>
+                <select name="filters[provider_id]" class="form-select">
+                  <option value="">Any</option>
+                  @foreach ($filterProviders as $p)
+                    <option value="{{ $p->id }}" @selected(old('filters.provider_id') == $p->id)>{{ $p->name }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Appointment status</label>
+                <select name="filters[status]" class="form-select">
+                  <option value="">Any</option>
+                  @foreach (\App\Models\Appointment::STATUSES as $key => $label)
+                    <option value="{{ $key }}" @selected(old('filters.status') === $key)>{{ $label }}</option>
+                  @endforeach
+                </select>
+              </div>
+              @if ($filterClinics->isNotEmpty())
+                <div class="col-md-6">
+                  <label class="form-label small">Clinic</label>
+                  <select name="filters[clinic_id]" class="form-select">
+                    <option value="">Any</option>
+                    @foreach ($filterClinics as $c)
+                      <option value="{{ $c->id }}" @selected(old('filters.clinic_id') == $c->id)>{{ $c->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+              @endif
+              <div class="col-md-3">
+                <label class="form-label small">No-show risk min %</label>
+                <input type="number" name="filters[risk_min]" class="form-control" min="0" max="100" value="{{ old('filters.risk_min') }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">No-show risk max %</label>
+                <input type="number" name="filters[risk_max]" class="form-control" min="0" max="100" value="{{ old('filters.risk_max') }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Exact appointment date</label>
+                <input type="date" name="filters[date]" class="form-control" value="{{ old('filters.date') }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">Appointment date from</label>
+                <input type="date" name="filters[date_from]" class="form-control" value="{{ old('filters.date_from') }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">Appointment date to</label>
+                <input type="date" name="filters[date_to]" class="form-control" value="{{ old('filters.date_to') }}">
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Or select specific patients</label>
+                <select name="filters[user_ids][]" class="form-select" multiple size="6">
+                  @foreach ($filterUsers as $u)
+                    <option value="{{ $u->id }}" @selected(in_array($u->id, old('filters.user_ids', [])))>{{ $u->name }}</option>
+                  @endforeach
+                </select>
+                <small class="text-muted">Selected patients are added to the audience in addition to whoever matches the filters above.</small>
+              </div>
+            </div>
+            <x-slot:footer>
+              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+            </x-slot:footer>
+          </x-modal>
         </form>
 
         <template id="bt-var-tpl">
@@ -125,6 +205,15 @@
             }
             unit.addEventListener('change', syncMax);
             syncMax();
+
+            // Show the "Configure filters" button only for the custom audience.
+            const audienceSelect = document.getElementById('audienceSelect');
+            const filtersBtn = document.getElementById('configureFiltersBtn');
+            function syncFiltersBtn() {
+              filtersBtn.classList.toggle('d-none', audienceSelect.value !== 'custom');
+            }
+            audienceSelect.addEventListener('change', syncFiltersBtn);
+            syncFiltersBtn();
           })();
         </script>
       </x-card>

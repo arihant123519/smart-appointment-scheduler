@@ -6,17 +6,17 @@
   <div class="row g-3 mb-3">
     <div class="col-md-4">
       <x-card class="sas-card-hover">
-        <div class="text-muted small">Collected</div><div class="h3 fw-bold text-success">${{ number_format($totals['collected'], 2) }}</div>
+        <div class="text-muted small">Collected</div><div class="h3 fw-bold text-success">₹{{ number_format($totals['collected'], 2) }}</div>
       </x-card>
     </div>
     <div class="col-md-4">
       <x-card class="sas-card-hover">
-        <div class="text-muted small">Pending</div><div class="h3 fw-bold text-warning">${{ number_format($totals['pending'], 2) }}</div>
+        <div class="text-muted small">Pending</div><div class="h3 fw-bold text-warning">₹{{ number_format($totals['pending'], 2) }}</div>
       </x-card>
     </div>
     <div class="col-md-4">
       <x-card class="sas-card-hover">
-        <div class="text-muted small">Refunded</div><div class="h3 fw-bold text-danger">${{ number_format($totals['refunded'], 2) }}</div>
+        <div class="text-muted small">Refunded</div><div class="h3 fw-bold text-danger">₹{{ number_format($totals['refunded'], 2) }}</div>
       </x-card>
     </div>
   </div>
@@ -42,7 +42,7 @@
                     —
                   @endif
                 </td>
-                <td>{{ $dep->currency === 'INR' ? '₹' : '$' }}{{ number_format($dep->amount, 2) }}</td>
+                <td>₹{{ number_format($dep->amount, 2) }}</td>
                 <td class="{{ $dep->expires_at && $dep->expires_at->isPast() ? 'text-danger' : 'text-muted' }} small">
                   {{ $dep->expires_at?->diffForHumans() ?? '—' }}
                 </td>
@@ -72,7 +72,7 @@
               <td>{{ $pay->patient->name ?? '—' }}</td>
               <td>{{ ucfirst(str_replace('_', ' ', $pay->type)) }}</td>
               <td>{{ ucfirst($pay->method ?? '—') }}</td>
-              <td>{{ $pay->currency === 'INR' ? '₹' : '$' }}{{ number_format($pay->amount, 2) }}</td>
+              <td>₹{{ number_format($pay->amount, 2) }}</td>
               @php
                 $badge = match ($pay->status) {
                     'paid' => 'success',

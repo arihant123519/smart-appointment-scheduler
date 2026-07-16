@@ -11,7 +11,7 @@
 
   <div class="d-flex align-items-center gap-2 ms-auto">
     @can('manage appointments')
-      <a href="{{ route('appointments.create') }}" class="btn btn-primary btn-sm">
+      <a href="{{ route('appointments.create') }}" class="btn btn-primary btn-sm sas-cmdk-item">
         <i class="fi fi-rr-plus me-1"></i> New Appointment
       </a>
     @endcan

@@ -60,6 +60,13 @@ Route::get('ref/{token}', [\App\Http\Controllers\ReferralController::class, 'sho
 Route::get('qr/{token}', [\App\Http\Controllers\QrCodeController::class, 'redeem'])->name('qrcodes.redeem');
 Route::get('qr/{token}/image', [\App\Http\Controllers\QrCodeController::class, 'image'])->name('qrcodes.image');
 
+// --- Public review submission (public, token-authenticated, no login) ------
+Route::middleware('throttle:10,1')->group(function () {
+    Route::get('feedback/{token}', [\App\Http\Controllers\PublicReviewController::class, 'show'])->name('reviews.public.show');
+    Route::post('feedback/{token}', [\App\Http\Controllers\PublicReviewController::class, 'store'])->name('reviews.public.store');
+});
+Route::get('feedback/{token}/image', [\App\Http\Controllers\PublicReviewController::class, 'image'])->name('reviews.public.image');
+
 // --- Inbound Gupshup webhook (public, shared-secret authenticated) ---------
 Route::post('webhooks/gupshup', [\App\Http\Controllers\Webhooks\GupshupWebhookController::class, 'handle'])
     ->name('webhooks.gupshup');
@@ -200,6 +207,11 @@ Route::middleware('auth')->group(function () {
         Route::get('qrcodes', [\App\Http\Controllers\QrCodeController::class, 'index'])->name('qrcodes.index');
         Route::post('qrcodes', [\App\Http\Controllers\QrCodeController::class, 'store'])->name('qrcodes.store');
         Route::delete('qrcodes/{qrcode}', [\App\Http\Controllers\QrCodeController::class, 'destroy'])->name('qrcodes.destroy');
+
+        // Review QR codes — per-clinic public feedback link, same admin permission.
+        Route::get('reviewqrcodes', [\App\Http\Controllers\ReviewQrCodeController::class, 'index'])->name('reviewqrcodes.index');
+        Route::post('reviewqrcodes', [\App\Http\Controllers\ReviewQrCodeController::class, 'store'])->name('reviewqrcodes.store');
+        Route::delete('reviewqrcodes/{reviewqrcode}', [\App\Http\Controllers\ReviewQrCodeController::class, 'destroy'])->name('reviewqrcodes.destroy');
     });
 
     // Reports + reviews/feedback
@@ -207,6 +219,7 @@ Route::middleware('auth')->group(function () {
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
         Route::post('reports/ask', [ReportController::class, 'ask'])->name('reports.ask');
         Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::get('reviews/feed', [ReviewController::class, 'feed'])->name('reviews.feed');
     });
 
     // Billing

@@ -40,9 +40,28 @@ class NotificationController extends Controller
         $n = auth()->user()->notifications()->findOrFail($id);
         $n->markAsRead();
 
-        return $n->data['url'] ?? false
-            ? redirect($n->data['url'])
-            : back();
+        $target = $this->healUrl($n->data['url'] ?? null);
+
+        return $target ? redirect($target) : back();
+    }
+
+    /**
+     * Rebuild a stored notification URL against the current request's host
+     * instead of blindly replaying it — notifications created by console
+     * commands (no HTTP request context) bake in whatever APP_URL was set at
+     * creation time, which can go stale (e.g. pointing at localhost). Using
+     * only the path/query and Laravel's url() helper self-heals those rows.
+     */
+    private function healUrl(?string $stored): ?string
+    {
+        if (! $stored) {
+            return null;
+        }
+
+        $path = parse_url($stored, PHP_URL_PATH) ?? '/';
+        $query = parse_url($stored, PHP_URL_QUERY);
+
+        return url($path.($query ? '?'.$query : ''));
     }
 
     public function readAll(): RedirectResponse

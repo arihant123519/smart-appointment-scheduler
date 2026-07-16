@@ -18,7 +18,7 @@
               <td>{{ $s->specialty ?? '—' }}</td>
               <td>{{ $s->duration }} min</td>
               <td>{{ $s->buffer }} min</td>
-              <td>${{ number_format($s->price, 2) }}</td>
+              <td>₹{{ number_format($s->price, 2) }}</td>
               <td>{{ $s->telehealth ? 'Yes' : 'No' }}</td>
               <td><x-badge-status :color="$s->is_active ? 'success' : 'secondary'" :label="$s->is_active ? 'Active' : 'Inactive'" /></td>
               <td class="text-end">

@@ -12,7 +12,7 @@
     <x-form-field name="buffer" label="Buffer (min)" type="number" min="0" :value="old('buffer', $service->buffer ?? 0)" />
   </div>
   <div class="col-md-3">
-    <x-form-field name="price" label="Price ($)" type="number" step="0.01" min="0" :value="old('price', $service->price ?? 0)" />
+    <x-form-field name="price" label="Price (₹)" type="number" step="0.01" min="0" :value="old('price', $service->price ?? 0)" />
   </div>
   <div class="col-md-3">
     <label class="form-label">Colour</label>
@@ -58,7 +58,7 @@
   <div class="col-md-8">
     <div id="svcDepositFields" class="row g-3 {{ old('deposit_required', $service->deposit_required ?? false) ? '' : 'd-none' }}">
       <div class="col-md-6">
-        <x-form-field name="deposit_amount" label="Deposit amount ($)" type="number" step="0.01" min="0.5"
+        <x-form-field name="deposit_amount" label="Deposit amount (₹)" type="number" step="0.01" min="0.5"
           :value="old('deposit_amount', $service->deposit_amount ?? '')" />
       </div>
       <div class="col-md-6">

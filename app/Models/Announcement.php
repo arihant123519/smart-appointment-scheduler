@@ -13,10 +13,11 @@ class Announcement extends Model
         'patients' => 'All patients',
         'providers' => 'Providers / doctors',
         'all' => 'All users',
+        'custom' => 'Custom filter',
     ];
 
     protected $fillable = [
-        'clinic_id', 'created_by', 'title', 'body', 'channel', 'audience',
+        'clinic_id', 'created_by', 'title', 'body', 'channel', 'audience', 'filters',
         'wa_template_id', 'wa_namespace', 'wa_variables',
         'recipients_count', 'send_at', 'status', 'sent_at',
     ];
@@ -25,6 +26,7 @@ class Announcement extends Model
         'sent_at' => 'datetime',
         'send_at' => 'datetime',
         'wa_variables' => 'array',
+        'filters' => 'array',
     ];
 
     public function scopeDue($query)

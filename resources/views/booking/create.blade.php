@@ -17,7 +17,7 @@
             <label class="form-label" for="serviceSelect">Service <span class="text-danger">*</span></label>
             <select name="service_id" id="serviceSelect" class="form-select" required>
               <option value="">Select service…</option>
-              @foreach ($services as $s)<option value="{{ $s->id }}" data-duration="{{ $s->duration }}" @selected(old('service_id', $preselectedServiceId ?? null) == $s->id)>{{ $s->name }} ({{ $s->duration }} min · ${{ number_format($s->price,2) }})</option>@endforeach
+              @foreach ($services as $s)<option value="{{ $s->id }}" data-duration="{{ $s->duration }}" @selected(old('service_id', $preselectedServiceId ?? null) == $s->id)>{{ $s->name }} ({{ $s->duration }} min · ₹{{ number_format($s->price,2) }})</option>@endforeach
             </select>
           </div>
           <div class="col-md-6">

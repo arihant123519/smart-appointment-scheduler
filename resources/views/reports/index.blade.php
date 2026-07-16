@@ -3,6 +3,17 @@
 @section('title', 'Reports & Analytics')
 
 @section('content')
+  @if ($clinics->isNotEmpty())
+    <form method="GET" class="mb-3" style="max-width:280px">
+      <select name="clinic_id" class="form-select" onchange="this.form.submit()">
+        <option value="">All clinics</option>
+        @foreach ($clinics as $c)
+          <option value="{{ $c->id }}" @selected($selectedClinicId == $c->id)>{{ $c->name }}</option>
+        @endforeach
+      </select>
+    </form>
+  @endif
+
   {{-- Natural-language report query (PRD §5.2) --}}
   <x-card bodyClass="pb-3" class="mb-3 border-primary-subtle">
     <label class="form-label mb-1 fw-semibold"><i class="fi fi-rr-search text-primary me-1"></i> Ask the data</label>

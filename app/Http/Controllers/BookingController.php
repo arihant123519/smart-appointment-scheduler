@@ -100,7 +100,7 @@ class BookingController extends Controller
         // if the deposit isn't completed within the hold window.
         $deposit = app(PaymentService::class)->createDeposit($appointment);
         $message = $deposit
-            ? 'Your appointment is held! A $'.number_format((float) $deposit->amount, 2)." deposit is due within ".PaymentService::ABANDON_AFTER_MINUTES.' minutes to confirm it.'
+            ? 'Your appointment is held! A ₹'.number_format((float) $deposit->amount, 2)." deposit is due within ".PaymentService::ABANDON_AFTER_MINUTES.' minutes to confirm it.'
             : 'Your appointment has been booked! A confirmation has been sent.';
 
         return redirect()->route('dashboard')->with('success', $message);

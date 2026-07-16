@@ -36,7 +36,7 @@ class ClinicDeskNotifier
             title: 'Appointment status updated',
             body: "{$patient}'s appointment".($when ? " on {$when}" : '')
                 ." is now {$appointment->status_label} (by {$actor->name}).",
-            url: route('appointments.show', $appointment),
+            url: route('appointments.show', $appointment, false),
             icon: 'fi-rr-refresh',
             key: 'appt_status_'.$appointment->id,
         );
@@ -73,7 +73,7 @@ class ClinicDeskNotifier
         $notification = new GenericNotification(
             title: 'WhatsApp conversation needs attention',
             body: "{$patient}'s appointment".($when ? " on {$when}" : '')." — {$reason}.",
-            url: route('appointments.show', $appointment),
+            url: route('appointments.show', $appointment, false),
             icon: 'fi-rr-comment-alt',
             key: 'flow_escalated_'.$appointment->id.'_'.now()->timestamp,
         );
