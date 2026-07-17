@@ -372,6 +372,12 @@
         }
 
         function renderRows(users) {
+          // Drop any previously-tracked id that isn't part of this render
+          // (e.g. matched a filter combo the user has since changed) so
+          // the count never counts a user no longer checkable in the list.
+          const ids = new Set(users.map(function (u) { return String(u.id); }));
+          Array.from(selected).forEach(function (id) { if (!ids.has(id)) selected.delete(id); });
+
           if (!users.length) {
             pickerList.innerHTML = '<div class="text-muted small text-center py-4">No users match these filters.</div>';
             syncSelectAllState();

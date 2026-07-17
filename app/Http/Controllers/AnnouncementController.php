@@ -229,7 +229,7 @@ class AnnouncementController extends Controller
     private function audienceUsersQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $user = auth()->user();
-        $query = User::query()->where('is_active', true);
+        $query = User::query()->where('is_active', true)->where('id', '!=', $user->id);
 
         if ($user->hasRole('system_admin')) {
             return $query;
