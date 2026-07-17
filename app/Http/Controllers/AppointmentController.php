@@ -198,6 +198,10 @@ class AppointmentController extends Controller
 
     public function updateStatus(Request $request, Appointment $appointment): RedirectResponse
     {
+        if ($appointment->status === Appointment::STATUS_COMPLETED) {
+            return back()->with('error', 'This appointment is already marked completed and its status can no longer be changed.');
+        }
+
         $data = $request->validate([
             'status' => ['required', 'in:'.implode(',', array_keys(Appointment::STATUSES))],
             'cancellation_reason' => ['nullable', 'string', 'max:255'],

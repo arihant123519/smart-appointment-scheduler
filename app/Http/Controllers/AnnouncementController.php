@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Services\AnnouncementService;
 use App\Support\WhatsappTemplate;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -105,6 +106,35 @@ class AnnouncementController extends Controller
         return redirect()->route('announcements.index')->with('success', $msg);
     }
 
+    /**
+     * Live audience preview for the custom-filter modal: returns the patients
+     * matching whatever filter values are currently set in the form, so the
+     * picker list updates as staff adjust service/provider/status/etc. With
+     * no criteria set at all, falls back to the full patient list (same as
+     * the modal's initial state).
+     */
+    public function previewAudience(Request $request, AnnouncementService $service): JsonResponse
+    {
+        $f = $request->only(['service_id', 'provider_id', 'status', 'risk_min', 'risk_max', 'date', 'date_from', 'date_to', 'clinic_id']);
+        $f = array_filter($f, fn ($v) => $v !== null && $v !== '');
+
+        $clinicId = auth()->user()->clinic_id;
+
+        $users = empty($f)
+            ? $this->audienceUsersQuery()->with('roles')->orderBy('name')->get()
+            : User::whereIn('id', $service->patientIdsForFilters($f, $clinicId))
+                ->where('is_active', true)->with('roles')->orderBy('name')->get();
+
+        return response()->json([
+            'users' => $users->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'phone' => $u->phone,
+                'role' => $u->roles->first()?->name,
+            ])->values(),
+        ]);
+    }
+
     public function destroy(Announcement $announcement): RedirectResponse
     {
         $wasScheduled = $announcement->status === 'scheduled';
@@ -176,15 +206,37 @@ class AnnouncementController extends Controller
         ];
     }
 
-    /** Dropdown data for the custom-audience filter builder. */
+    /** Dropdown + picker data for the custom-audience filter modal. */
     private function filterOptions(): array
     {
+        $filterUsers = $this->audienceUsersQuery()->with('roles')->orderBy('name')->get();
+
         return [
             'filterServices' => Service::forCurrentClinic()->orderBy('name')->get(),
             'filterProviders' => Provider::forCurrentClinic()->with('user')->get(),
             'filterClinics' => auth()->user()->hasRole('system_admin') ? Clinic::orderBy('name')->get() : collect(),
-            'filterUsers' => User::role('patient')->forCurrentClinic()->orderBy('name')->get(),
+            'filterUsers' => $filterUsers,
+            'filterRoleOptions' => $filterUsers->map(fn ($u) => $u->roles->first()?->name)->filter()->unique()->values(),
         ];
+    }
+
+    /**
+     * The base set of users eligible for the "custom" audience: for a clinic
+     * admin (or other non-system-admin staff), every active patient, provider,
+     * billing, and front-desk user in their own clinic; for a system admin,
+     * every active user across every clinic.
+     */
+    private function audienceUsersQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = auth()->user();
+        $query = User::query()->where('is_active', true);
+
+        if ($user->hasRole('system_admin')) {
+            return $query;
+        }
+
+        return $query->where('clinic_id', $user->clinic_id)
+            ->role(['patient', 'provider', 'billing', 'front_desk']);
     }
 
     /** Strip empty/null entries from the submitted filters.* inputs. */

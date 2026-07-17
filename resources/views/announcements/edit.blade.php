@@ -6,6 +6,41 @@
   <a href="{{ route('announcements.index') }}" class="btn btn-light"><i class="fi fi-rr-arrow-left me-1"></i> Back</a>
 @endsection
 
+@push('styles')
+  <style>
+    .sas-user-picker { border: 1px solid var(--sas-gray-200, #E2E8F0); border-radius: var(--sas-radius-lg, 12px); overflow: hidden; }
+    .sas-user-picker__search { display: flex; align-items: center; gap: .5rem; padding: .65rem .85rem; border-bottom: 1px solid var(--sas-gray-200, #E2E8F0); background: var(--sas-gray-50, #F8FAFC); }
+    .sas-user-picker__search i { color: var(--sas-gray-400, #94A3B8); font-size: .8rem; }
+    .sas-user-picker__search input { border: 0; background: transparent; flex: 1; font-size: 13px; outline: none; }
+    .sas-user-picker__list { max-height: 320px; overflow-y: auto; }
+    .sas-user-picker__row { display: flex; align-items: center; gap: .65rem; padding: .55rem .85rem; cursor: pointer; border-bottom: 1px solid var(--sas-gray-100, #F1F5F9); transition: background .15s; margin: 0; }
+    .sas-user-picker__row:last-child { border-bottom: 0; }
+    .sas-user-picker__row:hover { background: var(--sas-gray-50, #F8FAFC); }
+    .sas-user-picker__row input[type="checkbox"] { flex: 0 0 auto; }
+    .sas-user-picker__avatar { width: 26px; height: 26px; border-radius: 8px; background: var(--sas-primary-100, #DBEAFE); color: var(--sas-primary-700, #1D4ED8); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .sas-user-picker__body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .sas-user-picker__name { font-size: 13px; font-weight: 500; color: var(--sas-gray-900, #0F172A); }
+    .sas-user-picker__meta { font-size: 11px; color: var(--sas-gray-400, #94A3B8); }
+    .sas-user-picker__role { margin-left: auto; flex: 0 0 auto; }
+    .sas-filter-section__label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--sas-gray-500, #64748B); margin-bottom: .65rem; }
+    .sas-audience-modal { display: flex; align-items: flex-start; gap: 1.25rem; }
+    .sas-audience-modal__filters { flex: 0 0 250px; padding-right: 1.25rem; border-right: 1px solid var(--sas-gray-200, #E2E8F0); }
+    .sas-audience-modal__filters .form-label { font-size: 12px; font-weight: 500; color: var(--sas-gray-700, #334155); margin-bottom: .3rem; }
+    .sas-audience-modal__hint { font-size: 12px; color: var(--sas-gray-400, #94A3B8); margin-bottom: 1rem; }
+    .sas-audience-modal__users { flex: 1 1 auto; min-width: 0; }
+    .sas-user-picker__roles { display: flex; flex-wrap: wrap; gap: .4rem; padding: .6rem .85rem; border-bottom: 1px solid var(--sas-gray-200, #E2E8F0); background: var(--sas-gray-50, #F8FAFC); }
+    .sas-user-picker__bulk { display: flex; align-items: center; gap: .5rem; padding: .5rem .85rem; border-bottom: 1px solid var(--sas-gray-200, #E2E8F0); background: var(--sas-gray-50, #F8FAFC); font-size: 12px; font-weight: 500; color: var(--sas-gray-700, #334155); }
+    .sas-user-picker__bulk small { font-weight: 400; color: var(--sas-gray-400, #94A3B8); }
+    .sas-role-chip { display: inline-flex; align-items: center; padding: .28rem .6rem; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .02em; border: 1px solid var(--sas-gray-200, #E2E8F0); color: var(--sas-gray-500, #64748B); background: #fff; cursor: pointer; transition: all .15s; }
+    .sas-role-chip:hover { background: var(--sas-gray-100, #F1F5F9); }
+    .sas-role-chip.active { background: var(--sas-primary-600, #2563EB); border-color: var(--sas-primary-600, #2563EB); color: #fff; }
+    @media (max-width: 767.98px) {
+      .sas-audience-modal { flex-direction: column; }
+      .sas-audience-modal__filters { flex: none; width: 100%; border-right: 0; border-bottom: 1px solid var(--sas-gray-200, #E2E8F0); padding-right: 0; padding-bottom: 1rem; }
+    }
+  </style>
+@endpush
+
 @section('content')
   <div class="row g-3 justify-content-center">
     <div class="col-xl-6">
@@ -30,17 +65,11 @@
             @error('body')<div class="invalid-feedback">{{ $message }}</div>@enderror
           </div>
           @php $f = old('filters', $announcement->filters ?? []); @endphp
+          <input type="hidden" name="audience" value="custom">
           <div class="mb-3"><label class="form-label">Audience</label>
-            <div class="input-group">
-              <select name="audience" id="audienceSelect" class="form-select">
-                @foreach ($audiences as $key => $label)
-                  <option value="{{ $key }}" @selected(old('audience', $announcement->audience) === $key)>{{ $label }}</option>
-                @endforeach
-              </select>
-              <button type="button" id="configureFiltersBtn" class="btn btn-outline-secondary d-none" data-bs-toggle="modal" data-bs-target="#broadcastFilters">
-                <i class="fi fi-rr-settings-sliders me-1"></i> Configure filters
-              </button>
-            </div>
+            <button type="button" id="configureFiltersBtn" class="btn btn-outline-secondary w-100 text-start" data-bs-toggle="modal" data-bs-target="#broadcastFilters">
+              <i class="fi fi-rr-settings-sliders me-1"></i> Configure audience filters
+            </button>
           </div>
 
           <div class="mb-3">
@@ -106,77 +135,124 @@
 
           <button class="btn btn-primary"><i class="fi fi-rr-disk me-1"></i> Save changes</button>
 
-          <x-modal id="broadcastFilters" title="Custom audience filters">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label small">Service</label>
-                <select name="filters[service_id]" class="form-select">
-                  <option value="">Any</option>
-                  @foreach ($filterServices as $s)
-                    <option value="{{ $s->id }}" @selected(($f['service_id'] ?? null) == $s->id)>{{ $s->name }}</option>
-                  @endforeach
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small">Provider</label>
-                <select name="filters[provider_id]" class="form-select">
-                  <option value="">Any</option>
-                  @foreach ($filterProviders as $p)
-                    <option value="{{ $p->id }}" @selected(($f['provider_id'] ?? null) == $p->id)>{{ $p->name }}</option>
-                  @endforeach
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small">Appointment status</label>
-                <select name="filters[status]" class="form-select">
-                  <option value="">Any</option>
-                  @foreach (\App\Models\Appointment::STATUSES as $key => $label)
-                    <option value="{{ $key }}" @selected(($f['status'] ?? null) === $key)>{{ $label }}</option>
-                  @endforeach
-                </select>
-              </div>
-              @if ($filterClinics->isNotEmpty())
-                <div class="col-md-6">
-                  <label class="form-label small">Clinic</label>
-                  <select name="filters[clinic_id]" class="form-select">
+          <x-modal id="broadcastFilters" title="Custom audience filters" size="xl">
+            <div class="sas-audience-modal">
+              <div class="sas-audience-modal__filters">
+                <div class="sas-filter-section__label">Match by appointment</div>
+                <p class="sas-audience-modal__hint">Narrows recipients to patients from matching appointments. Leave blank to pick recipients by role instead.</p>
+                <div class="mb-3">
+                  <label class="form-label">Service</label>
+                  <select name="filters[service_id]" class="form-select form-select-sm sas-audience-filter" data-key="service_id">
                     <option value="">Any</option>
-                    @foreach ($filterClinics as $c)
-                      <option value="{{ $c->id }}" @selected(($f['clinic_id'] ?? null) == $c->id)>{{ $c->name }}</option>
+                    @foreach ($filterServices as $s)
+                      <option value="{{ $s->id }}" @selected(($f['service_id'] ?? null) == $s->id)>{{ $s->name }}</option>
                     @endforeach
                   </select>
                 </div>
-              @endif
-              <div class="col-md-3">
-                <label class="form-label small">No-show risk min %</label>
-                <input type="number" name="filters[risk_min]" class="form-control" min="0" max="100" value="{{ $f['risk_min'] ?? '' }}">
+                <div class="mb-3">
+                  <label class="form-label">Provider</label>
+                  <select name="filters[provider_id]" class="form-select form-select-sm sas-audience-filter" data-key="provider_id">
+                    <option value="">Any</option>
+                    @foreach ($filterProviders as $p)
+                      <option value="{{ $p->id }}" @selected(($f['provider_id'] ?? null) == $p->id)>{{ $p->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Appointment status</label>
+                  <select name="filters[status]" class="form-select form-select-sm sas-audience-filter" data-key="status">
+                    <option value="">Any</option>
+                    @foreach (\App\Models\Appointment::STATUSES as $key => $label)
+                      <option value="{{ $key }}" @selected(($f['status'] ?? null) === $key)>{{ $label }}</option>
+                    @endforeach
+                  </select>
+                </div>
+                @if ($filterClinics->isNotEmpty())
+                  <div class="mb-3">
+                    <label class="form-label">Clinic</label>
+                    <select name="filters[clinic_id]" class="form-select form-select-sm sas-audience-filter" data-key="clinic_id">
+                      <option value="">Any</option>
+                      @foreach ($filterClinics as $c)
+                        <option value="{{ $c->id }}" @selected(($f['clinic_id'] ?? null) == $c->id)>{{ $c->name }}</option>
+                      @endforeach
+                    </select>
+                  </div>
+                @endif
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label class="form-label">Risk min %</label>
+                    <input type="number" name="filters[risk_min]" class="form-control form-control-sm sas-audience-filter" data-key="risk_min" min="0" max="100" value="{{ $f['risk_min'] ?? '' }}">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Risk max %</label>
+                    <input type="number" name="filters[risk_max]" class="form-control form-control-sm sas-audience-filter" data-key="risk_max" min="0" max="100" value="{{ $f['risk_max'] ?? '' }}">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Exact appointment date</label>
+                  <input type="date" name="filters[date]" class="form-control form-control-sm sas-audience-filter" data-key="date" value="{{ $f['date'] ?? '' }}">
+                </div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label">Date from</label>
+                    <input type="date" name="filters[date_from]" class="form-control form-control-sm sas-audience-filter" data-key="date_from" value="{{ $f['date_from'] ?? '' }}">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Date to</label>
+                    <input type="date" name="filters[date_to]" class="form-control form-control-sm sas-audience-filter" data-key="date_to" value="{{ $f['date_to'] ?? '' }}">
+                  </div>
+                </div>
               </div>
-              <div class="col-md-3">
-                <label class="form-label small">No-show risk max %</label>
-                <input type="number" name="filters[risk_max]" class="form-control" min="0" max="100" value="{{ $f['risk_max'] ?? '' }}">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small">Exact appointment date</label>
-                <input type="date" name="filters[date]" class="form-control" value="{{ $f['date'] ?? '' }}">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small">Appointment date from</label>
-                <input type="date" name="filters[date_from]" class="form-control" value="{{ $f['date_from'] ?? '' }}">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small">Appointment date to</label>
-                <input type="date" name="filters[date_to]" class="form-control" value="{{ $f['date_to'] ?? '' }}">
-              </div>
-              <div class="col-12">
-                <label class="form-label small">Or select specific patients</label>
-                <select name="filters[user_ids][]" class="form-select" multiple size="6">
-                  @foreach ($filterUsers as $u)
-                    <option value="{{ $u->id }}" @selected(in_array($u->id, $f['user_ids'] ?? []))>{{ $u->name }}</option>
-                  @endforeach
-                </select>
-                <small class="text-muted">Selected patients are added to the audience in addition to whoever matches the filters above.</small>
+
+              <div class="sas-audience-modal__users">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="sas-filter-section__label mb-0">Recipients</div>
+                  <span class="text-muted small" id="userPickerStatus"></span>
+                </div>
+                @php $oldUserIds = $f['user_ids'] ?? []; @endphp
+                @php $roleColors = ['patient' => 'info', 'provider' => 'success', 'billing' => 'warning', 'front_desk' => 'secondary', 'clinic_admin' => 'primary', 'system_admin' => 'dark']; @endphp
+                <div class="sas-user-picker">
+                  <div class="sas-user-picker__search">
+                    <i class="fi fi-rr-search"></i>
+                    <input type="text" id="userPickerSearch" placeholder="Search by name or phone…" autocomplete="off">
+                  </div>
+                  @if ($filterRoleOptions->count() > 1)
+                    <div class="sas-user-picker__roles" id="userPickerRoleTabs">
+                      <button type="button" class="sas-role-chip active" data-role="all">All</button>
+                      @foreach ($filterRoleOptions as $r)
+                        <button type="button" class="sas-role-chip" data-role="{{ $r }}">{{ ucwords(str_replace('_', ' ', $r)) }}</button>
+                      @endforeach
+                    </div>
+                  @endif
+                  <div class="sas-user-picker__bulk">
+                    <input type="checkbox" id="userPickerSelectAll">
+                    <label for="userPickerSelectAll">Select all</label>
+                    <small>— filtered patients are included automatically; use this to also add/remove others by hand</small>
+                  </div>
+                  <div class="sas-user-picker__list" id="userPickerList" data-preview-url="{{ route('announcements.previewAudience') }}">
+                    @forelse ($filterUsers as $u)
+                      @php $uRole = $u->roles->first()?->name; @endphp
+                      <label class="sas-user-picker__row" data-role="{{ $uRole }}">
+                        <input type="checkbox" name="filters[user_ids][]" value="{{ $u->id }}" @checked(in_array($u->id, $oldUserIds))>
+                        <span class="sas-user-picker__avatar">{{ strtoupper(mb_substr($u->name, 0, 1)) }}</span>
+                        <span class="sas-user-picker__body">
+                          <span class="sas-user-picker__name">{{ $u->name }}</span>
+                          @if ($u->phone)<span class="sas-user-picker__meta">{{ $u->phone }}</span>@endif
+                        </span>
+                        @if ($uRole)
+                          <span class="badge bg-{{ $roleColors[$uRole] ?? 'secondary' }}-subtle text-{{ $roleColors[$uRole] ?? 'secondary' }} sas-user-picker__role">{{ ucwords(str_replace('_', ' ', $uRole)) }}</span>
+                        @endif
+                      </label>
+                    @empty
+                      <div class="text-muted small text-center py-4">No users found for this audience.</div>
+                    @endforelse
+                  </div>
+                </div>
               </div>
             </div>
+
             <x-slot:footer>
+              <span class="text-muted small me-auto" id="userPickerCount">0 recipients selected</span>
               <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
             </x-slot:footer>
           </x-modal>
@@ -227,14 +303,163 @@
       unit.addEventListener('change', syncMax);
       syncMax();
 
-      // Show the "Configure filters" button only for the custom audience.
-      const audienceSelect = document.getElementById('audienceSelect');
+      // Patient picker: live search, selected count, and live re-filtering
+      // of the list itself as the appointment-match fields above change.
       const filtersBtn = document.getElementById('configureFiltersBtn');
-      function syncFiltersBtn() {
-        filtersBtn.classList.toggle('d-none', audienceSelect.value !== 'custom');
+      const pickerList = document.getElementById('userPickerList');
+      if (pickerList) {
+        const search = document.getElementById('userPickerSearch');
+        const roleTabs = document.getElementById('userPickerRoleTabs');
+        const selectAll = document.getElementById('userPickerSelectAll');
+        const count = document.getElementById('userPickerCount');
+        const status = document.getElementById('userPickerStatus');
+        const previewUrl = pickerList.dataset.previewUrl;
+        const selected = new Set();
+        const roleColors = { patient: 'info', provider: 'success', billing: 'warning', front_desk: 'secondary', clinic_admin: 'primary', system_admin: 'dark' };
+        let activeRole = 'all';
+
+        function esc(str) {
+          const d = document.createElement('div');
+          d.textContent = str == null ? '' : String(str);
+          return d.innerHTML;
+        }
+
+        function roleLabel(role) {
+          return role.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        }
+
+        function visibleRows() {
+          return Array.from(pickerList.querySelectorAll('.sas-user-picker__row')).filter(function (r) { return r.style.display !== 'none'; });
+        }
+
+        function collectSelected() {
+          pickerList.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+            if (cb.checked) selected.add(cb.value); else selected.delete(cb.value);
+          });
+        }
+
+        function updateCount() {
+          const n = selected.size;
+          if (count) count.textContent = n + ' recipients selected';
+          filtersBtn.innerHTML = '<i class="fi fi-rr-settings-sliders me-1"></i> Configure audience filters' + (n ? ' (' + n + ' recipients)' : '');
+        }
+
+        function syncSelectAllState() {
+          if (!selectAll) return;
+          const boxes = visibleRows().map(function (r) { return r.querySelector('input[type="checkbox"]'); });
+          const checkedCount = boxes.filter(function (cb) { return cb.checked; }).length;
+          selectAll.checked = boxes.length > 0 && checkedCount === boxes.length;
+          selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+        }
+
+        function onSelectionChange() {
+          collectSelected();
+          updateCount();
+          syncSelectAllState();
+        }
+
+        function applyFilters() {
+          const q = (search && search.value.trim().toLowerCase()) || '';
+          pickerList.querySelectorAll('.sas-user-picker__row').forEach(function (r) {
+            const name = r.querySelector('.sas-user-picker__name').textContent.toLowerCase();
+            const metaEl = r.querySelector('.sas-user-picker__meta');
+            const meta = metaEl ? metaEl.textContent.toLowerCase() : '';
+            const matchesSearch = !q || name.includes(q) || meta.includes(q);
+            const matchesRole = activeRole === 'all' || r.dataset.role === activeRole;
+            r.style.display = (matchesSearch && matchesRole) ? '' : 'none';
+          });
+          syncSelectAllState();
+        }
+
+        function renderRows(users) {
+          if (!users.length) {
+            pickerList.innerHTML = '<div class="text-muted small text-center py-4">No users match these filters.</div>';
+            syncSelectAllState();
+            return;
+          }
+          pickerList.innerHTML = users.map(function (u) {
+            const initial = esc((u.name || '?').charAt(0).toUpperCase());
+            const checked = selected.has(String(u.id)) ? ' checked' : '';
+            const meta = u.phone ? '<span class="sas-user-picker__meta">' + esc(u.phone) + '</span>' : '';
+            const role = u.role || '';
+            const roleColor = roleColors[role] || 'secondary';
+            const roleBadge = role ? '<span class="badge bg-' + roleColor + '-subtle text-' + roleColor + ' sas-user-picker__role">' + esc(roleLabel(role)) + '</span>' : '';
+            return '<label class="sas-user-picker__row" data-role="' + esc(role) + '">'
+              + '<input type="checkbox" name="filters[user_ids][]" value="' + u.id + '"' + checked + '>'
+              + '<span class="sas-user-picker__avatar">' + initial + '</span>'
+              + '<span class="sas-user-picker__body"><span class="sas-user-picker__name">' + esc(u.name) + '</span>' + meta + '</span>'
+              + roleBadge
+              + '</label>';
+          }).join('');
+          pickerList.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+            cb.addEventListener('change', onSelectionChange);
+          });
+          applyFilters();
+        }
+
+        let debounceTimer = null;
+        function refreshList() {
+          collectSelected();
+          const params = new URLSearchParams();
+          document.querySelectorAll('.sas-audience-filter').forEach(function (el) {
+            if (el.value) params.set(el.dataset.key, el.value);
+          });
+          const hasFilters = Array.from(params.keys()).length > 0;
+          if (status) status.textContent = 'Loading…';
+          fetch(previewUrl + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+              if (status) status.textContent = '';
+              if (!data) return;
+              const users = data.users || [];
+              // Appointment-matched patients are sent regardless of checkbox
+              // state (the server re-resolves them from the same filters at
+              // send time) — pre-check them so the list reflects that.
+              if (hasFilters) users.forEach(function (u) { selected.add(String(u.id)); });
+              renderRows(users);
+              updateCount();
+            })
+            .catch(function () { if (status) status.textContent = 'Could not load users.'; });
+        }
+
+        document.querySelectorAll('.sas-audience-filter').forEach(function (el) {
+          el.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(refreshList, 350);
+          });
+        });
+
+        pickerList.addEventListener('change', function (e) {
+          if (e.target.matches('input[type="checkbox"]')) onSelectionChange();
+        });
+        search && search.addEventListener('input', applyFilters);
+        if (roleTabs) {
+          roleTabs.addEventListener('click', function (e) {
+            const btn = e.target.closest('.sas-role-chip');
+            if (!btn) return;
+            roleTabs.querySelectorAll('.sas-role-chip').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            activeRole = btn.dataset.role;
+            applyFilters();
+          });
+        }
+        if (selectAll) {
+          selectAll.addEventListener('change', function () {
+            visibleRows().forEach(function (r) {
+              r.querySelector('input[type="checkbox"]').checked = selectAll.checked;
+            });
+            onSelectionChange();
+          });
+        }
+
+        onSelectionChange();
+
+        // Edit form reopened with filters already saved — reflect the
+        // matching list (and auto-check) right away instead of waiting
+        // for the user to touch a field.
+        const hasPrefilledFilters = Array.from(document.querySelectorAll('.sas-audience-filter')).some(function (el) { return el.value; });
+        if (hasPrefilledFilters) refreshList();
       }
-      audienceSelect.addEventListener('change', syncFiltersBtn);
-      syncFiltersBtn();
     })();
   </script>
 @endsection

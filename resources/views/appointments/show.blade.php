@@ -117,16 +117,23 @@
       @can('manage appointments')
         <x-card class="mb-3">
           <x-slot:title><i class="fi fi-rr-refresh text-primary me-1"></i> Update status</x-slot:title>
-          <form method="POST" action="{{ route('appointments.status', $appointment) }}">
-            @csrf @method('PATCH')
-            <select name="status" class="form-select mb-2">
-              @foreach (\App\Models\Appointment::STATUSES as $key => $label)
-                <option value="{{ $key }}" @selected($appointment->status === $key)>{{ $label }}</option>
-              @endforeach
-            </select>
-            <input type="text" name="cancellation_reason" class="form-control mb-2" placeholder="Reason (if cancelling)">
-            <button class="btn btn-primary w-100">Update</button>
-          </form>
+          @if ($appointment->status === \App\Models\Appointment::STATUS_COMPLETED)
+            <div class="text-center text-muted small py-2">
+              <i class="fi fi-rr-lock d-block fs-4 mb-2"></i>
+              This appointment is completed and its status is locked.
+            </div>
+          @else
+            <form method="POST" action="{{ route('appointments.status', $appointment) }}">
+              @csrf @method('PATCH')
+              <select name="status" class="form-select mb-2">
+                @foreach (\App\Models\Appointment::STATUSES as $key => $label)
+                  <option value="{{ $key }}" @selected($appointment->status === $key)>{{ $label }}</option>
+                @endforeach
+              </select>
+              <input type="text" name="cancellation_reason" class="form-control mb-2" placeholder="Reason (if cancelling)">
+              <button class="btn btn-primary w-100">Update</button>
+            </form>
+          @endif
         </x-card>
 
         @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_BOOKED, \App\Models\Appointment::STATUS_CONFIRMED], true))
