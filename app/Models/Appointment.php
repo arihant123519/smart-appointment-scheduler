@@ -30,6 +30,15 @@ class Appointment extends Model
         self::STATUS_NO_SHOW => 'No Show',
     ];
 
+    public const TRANSITIONS = [
+        self::STATUS_BOOKED => [self::STATUS_CONFIRMED, self::STATUS_CHECKED_IN, self::STATUS_CANCELLED, self::STATUS_NO_SHOW],
+        self::STATUS_CONFIRMED => [self::STATUS_CHECKED_IN, self::STATUS_CANCELLED, self::STATUS_NO_SHOW],
+        self::STATUS_CHECKED_IN => [self::STATUS_COMPLETED, self::STATUS_CANCELLED],
+        self::STATUS_COMPLETED => [],
+        self::STATUS_CANCELLED => [],
+        self::STATUS_NO_SHOW => [],
+    ];
+
     protected $fillable = [
         'patient_id', 'provider_id', 'clinic_id', 'service_id', 'resource_id',
         'start_at', 'end_at', 'overbook_slot', 'status', 'channel', 'source', 'no_show_score',
@@ -216,6 +225,13 @@ class Appointment extends Model
     public function getStatusLabelAttribute(): string
     {
         return self::STATUSES[$this->status] ?? ucfirst($this->status);
+    }
+
+    public function availableStatusOptions(): array
+    {
+        $keys = [$this->status, ...self::TRANSITIONS[$this->status] ?? []];
+
+        return array_intersect_key(self::STATUSES, array_flip($keys));
     }
 
     public function getStatusColorAttribute(): string

@@ -51,6 +51,14 @@ class FlowEngine
             return null;
         }
 
+        $existing = WhatsappConversation::active()
+            ->where('whatsapp_flow_id', $flow->id)
+            ->where('appointment_id', $appointment->id)
+            ->first();
+        if ($existing) {
+            return $existing;
+        }
+
         $startNodeId = $flow->graph['start'] ?? null;
         if (! $startNodeId) {
             return null;

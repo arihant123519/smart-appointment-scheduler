@@ -159,6 +159,7 @@ Route::middleware('auth')->group(function () {
         Route::put('appointments/{appointment}', [AppointmentController::class, 'update'])->name('appointments.update');
         Route::delete('appointments/{appointment}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
         Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.status');
+        Route::patch('appointments/{appointment}/reason', [AppointmentController::class, 'updateReason'])->name('appointments.reason');
         // Payments against an appointment
         Route::post('appointments/{appointment}/charge', [PaymentController::class, 'charge'])->name('payments.charge');
     });

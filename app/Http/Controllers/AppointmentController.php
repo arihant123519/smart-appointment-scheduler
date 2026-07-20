@@ -198,14 +198,20 @@ class AppointmentController extends Controller
 
     public function updateStatus(Request $request, Appointment $appointment): RedirectResponse
     {
-        if ($appointment->status === Appointment::STATUS_COMPLETED) {
-            return back()->with('error', 'This appointment is already marked completed and its status can no longer be changed.');
+        $allowedTargets = Appointment::TRANSITIONS[$appointment->status] ?? [];
+
+        if (empty($allowedTargets)) {
+            return back()->with('error', 'This appointment status is locked and can no longer be changed.');
         }
 
         $data = $request->validate([
             'status' => ['required', 'in:'.implode(',', array_keys(Appointment::STATUSES))],
             'cancellation_reason' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (! in_array($data['status'], $allowedTargets, true)) {
+            return back()->with('error', 'Cannot change status from "'.Appointment::STATUSES[$appointment->status].'" to "'.Appointment::STATUSES[$data['status']].'".');
+        }
 
         $before = $appointment->toArray();
         $appointment->status = $data['status'];
@@ -217,6 +223,7 @@ class AppointmentController extends Controller
                 $a->cancelled_at = now();
                 $a->cancellation_reason = $data['cancellation_reason'] ?? null;
             }),
+            Appointment::STATUS_NO_SHOW => $appointment->cancellation_reason = $data['cancellation_reason'] ?? null,
             default => null,
         };
 
@@ -244,6 +251,25 @@ class AppointmentController extends Controller
         }
 
         return back()->with('success', $msg);
+    }
+
+    /** Edit the cancellation/no-show note on a locked appointment, without touching its status. */
+    public function updateReason(Request $request, Appointment $appointment): RedirectResponse
+    {
+        if (! in_array($appointment->status, [Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW], true)) {
+            return back()->with('error', 'A reason note can only be edited on a cancelled or no-show appointment.');
+        }
+
+        $data = $request->validate([
+            'cancellation_reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $before = $appointment->toArray();
+        $appointment->cancellation_reason = $data['cancellation_reason'] ?? null;
+        $appointment->save();
+        AuditLog::record('reason_updated', $appointment, $before, $appointment->toArray());
+
+        return back()->with('success', 'Reason note updated.');
     }
 
     /** AJAX: available slots for provider + service + date. */

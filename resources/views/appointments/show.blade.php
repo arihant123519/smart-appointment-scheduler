@@ -117,26 +117,33 @@
       @can('manage appointments')
         <x-card class="mb-3">
           <x-slot:title><i class="fi fi-rr-refresh text-primary me-1"></i> Update status</x-slot:title>
-          @if ($appointment->status === \App\Models\Appointment::STATUS_COMPLETED)
-            <div class="text-center text-muted small py-2">
+          @if (empty(\App\Models\Appointment::TRANSITIONS[$appointment->status] ?? []))
+            <div class="text-center text-muted small py-2 mb-2">
               <i class="fi fi-rr-lock d-block fs-4 mb-2"></i>
-              This appointment is completed and its status is locked.
+              This appointment status is locked and can no longer be changed.
             </div>
+            @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_NO_SHOW], true))
+              <form method="POST" action="{{ route('appointments.reason', $appointment) }}">
+                @csrf @method('PATCH')
+                <input type="text" name="cancellation_reason" class="form-control mb-2" value="{{ $appointment->cancellation_reason }}" placeholder="Reason — e.g. wants to reschedule">
+                <button class="btn btn-outline-primary w-100 btn-sm">Save reason</button>
+              </form>
+            @endif
           @else
             <form method="POST" action="{{ route('appointments.status', $appointment) }}">
               @csrf @method('PATCH')
               <select name="status" class="form-select mb-2">
-                @foreach (\App\Models\Appointment::STATUSES as $key => $label)
+                @foreach ($appointment->availableStatusOptions() as $key => $label)
                   <option value="{{ $key }}" @selected($appointment->status === $key)>{{ $label }}</option>
                 @endforeach
               </select>
-              <input type="text" name="cancellation_reason" class="form-control mb-2" placeholder="Reason (if cancelling)">
+              <input type="text" name="cancellation_reason" class="form-control mb-2" placeholder="Reason (if cancelling or no-show — e.g. wants to reschedule)">
               <button class="btn btn-primary w-100">Update</button>
             </form>
           @endif
         </x-card>
 
-        @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_BOOKED, \App\Models\Appointment::STATUS_CONFIRMED], true))
+        @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_BOOKED, \App\Models\Appointment::STATUS_CONFIRMED, \App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_NO_SHOW], true))
           <x-card class="mb-3">
             <x-slot:title><i class="fi fi-rr-clock text-primary me-1"></i> Suggested reschedule times</x-slot:title>
             <div id="rescheduleSuggestions" class="text-muted small">Loading suggestions based on this patient's own booking history…</div>
