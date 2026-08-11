@@ -29,6 +29,32 @@
         </form>
       </x-card>
 
+      @if ($user->provider)
+        <x-card class="mb-3" title="Prescription details">
+          <p class="text-muted small">Shown on every prescription you write, alongside the clinic's letterhead.</p>
+          <form method="POST" action="{{ route('profile.provider.update') }}" enctype="multipart/form-data">
+            @csrf @method('PUT')
+            <div class="row g-3">
+              <div class="col-md-6">
+                <x-form-field name="registration_no" label="Medical registration number" :value="old('registration_no', $user->provider->registration_no)" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Signature</label>
+                <input type="file" name="signature" class="form-control @error('signature') is-invalid @enderror" accept="image/*">
+                @error('signature')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @if ($user->provider->signature_path)
+                  <div class="form-text">
+                    <img src="{{ $user->provider->signature_url }}" alt="Current signature" style="height:28px" class="mt-1 rounded border p-1">
+                    Current signature — choose a file to replace it.
+                  </div>
+                @endif
+              </div>
+            </div>
+            <div class="mt-3"><button class="btn btn-primary">Save prescription details</button></div>
+          </form>
+        </x-card>
+      @endif
+
       <x-card class="mb-3" title="Change password">
         <form method="POST" action="{{ route('profile.password') }}">
           @csrf @method('PUT')
@@ -53,9 +79,11 @@
           <a href="{{ route('export.ics') }}" class="btn btn-sm btn-light"><i class="fi fi-rr-calendar me-1"></i> Calendar feed (.ics)</a>
         </x-slot:toolbar>
         <div class="p-3 pb-0">
-          <form method="POST" action="{{ route('profile.tokens.create') }}" class="d-flex gap-2 mb-3">
+          <form method="POST" action="{{ route('profile.tokens.create') }}" class="d-flex gap-2 mb-3 align-items-start">
             @csrf
-            <input type="text" name="token_name" class="form-control" placeholder="Token name (e.g. Mobile app)" required>
+            <div class="flex-grow-1">
+              <x-outline-field name="token_name" label="Token name" placeholder="e.g. Mobile app" required />
+            </div>
             <button class="btn btn-primary flex-shrink-0">Generate</button>
           </form>
         </div>

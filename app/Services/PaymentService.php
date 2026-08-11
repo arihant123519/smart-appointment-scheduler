@@ -68,7 +68,7 @@ class PaymentService
 
     public function refund(Payment $payment): Payment
     {
-        return Payment::create([
+        $refund = Payment::create([
             'appointment_id' => $payment->appointment_id,
             'patient_id' => $payment->patient_id,
             'amount' => $payment->amount,
@@ -78,6 +78,14 @@ class PaymentService
             'status' => 'refunded',
             'paid_at' => now(),
         ]);
+
+        // Flip the original transaction so it can't be refunded a second time
+        // and so it stops being counted as "collected" in totals.
+        if ($payment->type !== 'refund') {
+            $payment->update(['status' => 'refunded']);
+        }
+
+        return $refund;
     }
 
     // --- Deposits -------------------------------------------------------------

@@ -47,17 +47,7 @@
       @include('partials.topbar')
 
       <main class="sas-content" id="mainContent" tabindex="-1">
-        <div class="sas-page-toolbar">
-          <div>
-            <h1 class="sas-page-title">@yield('page_title', View::yieldContent('title', 'Dashboard'))</h1>
-            @hasSection('breadcrumb')
-              <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">@yield('breadcrumb')</ol>
-              </nav>
-            @endif
-          </div>
-          <div class="sas-page-toolbar__actions">@yield('page_actions')</div>
-        </div>
+        
 
         {{-- session success/error are surfaced as toasts (see bottom of layout) --}}
         @if ($errors->any())
@@ -124,9 +114,32 @@
     window.SAS_UNREAD = @json($sasUnread);
     window.SAS_IS_FRONTDESK = @json($sasUser ? $sasUser->hasRole('front_desk') : false);
     window.SAS_FEED_URL = @json($sasUser ? route('notifications.feed') : null);
+    window.SAS_CLINIC_ID = @json($sasUser->clinic_id ?? null);
   </script>
 
   <script src="{{ asset('assets/libs/global/global.min.js') }}"></script>
+  <script>
+    // Row-action "⋮" dropdowns (.sas-dropdown-actions, used on every index
+    // table) live inside .table-responsive, which sets overflow-x:auto —
+    // that clips a normally-positioned dropdown menu against the table's
+    // own box instead of the page, so menus near the bottom/edge of a table
+    // render cut off or squashed against the pagination row. Popper's
+    // "fixed" positioning strategy makes the menu position itself against
+    // the viewport instead, escaping that clipping — merged onto Bootstrap's
+    // own computed config (not replacing it) so placement/flip/offset still
+    // work exactly as before. Applied to every dropdown trigger inside a
+    // .table-responsive, app-wide, not just one page.
+    (function () {
+      if (!window.bootstrap || !bootstrap.Dropdown) return;
+      document.querySelectorAll('.table-responsive [data-bs-toggle="dropdown"]').forEach(function (toggle) {
+        bootstrap.Dropdown.getOrCreateInstance(toggle, {
+          popperConfig: function (defaultConfig) {
+            return Object.assign({}, defaultConfig, { strategy: 'fixed' });
+          },
+        });
+      });
+    })();
+  </script>
   <script src="{{ asset('assets/libs/flatpickr/flatpickr.min.js') }}"></script>
   <script src="{{ asset('assets/libs/datatables/datatables.min.js') }}"></script>
   <script>
@@ -275,20 +288,31 @@
         requestAnimationFrame(step);
       });
 
-      if (typeof window.ApexCharts === 'undefined') return;
-      document.querySelectorAll('.sas-spark').forEach(function (el) {
-        let data;
-        try { data = JSON.parse(el.dataset.series || '[]'); } catch (e) { data = []; }
-        if (!data.length) return;
-        new ApexCharts(el, {
-          chart: { type: 'area', height: 50, sparkline: { enabled: true } },
-          series: [{ data: data }],
-          stroke: { curve: 'smooth', width: 2 },
-          fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0 } },
-          colors: [el.dataset.color || '#2563EB'],
-          tooltip: { enabled: false },
-        }).render();
-      });
+      // Pages that render .sas-spark load ApexCharts themselves via
+      // @push('scripts'), which renders *after* this block — so wait for
+      // DOMContentLoaded (fires once all those synchronous scripts have
+      // run) rather than checking window.ApexCharts right now.
+      function renderSparks() {
+        if (typeof window.ApexCharts === 'undefined') return;
+        document.querySelectorAll('.sas-spark').forEach(function (el) {
+          let data;
+          try { data = JSON.parse(el.dataset.series || '[]'); } catch (e) { data = []; }
+          if (!data.length) return;
+          new ApexCharts(el, {
+            chart: { type: 'area', height: 50, sparkline: { enabled: true } },
+            series: [{ data: data }],
+            stroke: { curve: 'smooth', width: 2 },
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0 } },
+            colors: [el.dataset.color || '#2563EB'],
+            tooltip: { enabled: false },
+          }).render();
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderSparks);
+      } else {
+        renderSparks();
+      }
     })();
   </script>
   <script>

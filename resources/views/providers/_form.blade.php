@@ -15,9 +15,7 @@
     <x-form-field name="credentials" label="Credentials" placeholder="MD, DDS…" :value="old('credentials', $provider->credentials ?? '')" />
   </div>
   <div class="col-12">
-    <label class="form-label">Bio</label>
-    <textarea name="bio" class="form-control @error('bio') is-invalid @enderror" rows="2">{{ old('bio', $provider->bio ?? '') }}</textarea>
-    @error('bio')<div class="invalid-feedback">{{ $message }}</div>@enderror
+    <x-outline-field name="bio" label="Bio" textarea rows="2" :value="old('bio', $provider->bio ?? '')" />
   </div>
   <div class="col-12">
     <label class="form-label">Services offered</label>

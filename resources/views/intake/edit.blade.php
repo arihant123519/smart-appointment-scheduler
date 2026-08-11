@@ -11,8 +11,8 @@
         @csrf @method('PUT')
         @foreach ($schema as $key => $label)
           <div class="mb-3">
-            <label class="form-label">{{ $label }}</label>
-            <textarea name="responses[{{ $key }}]" class="form-control" rows="2">{{ old("responses.$key", $intake->responses[$key] ?? '') }}</textarea>
+            <x-outline-field name="responses[{{ $key }}]" id="resp_{{ $key }}" label="{{ $label }}" textarea rows="2"
+              :value="old('responses.'.$key, $intake->responses[$key] ?? '')" />
           </div>
         @endforeach
         <hr>

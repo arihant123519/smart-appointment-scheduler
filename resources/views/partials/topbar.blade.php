@@ -1,15 +1,19 @@
-<header class="sas-topbar">
+<header class="sas-topbar" id="sasTopbar">
   <button class="btn btn-icon btn-action-gray rounded-circle sas-sidebar__toggle" data-sas-toggle type="button" aria-label="Toggle navigation menu">
     <i class="fi fi-rr-menu-burger"></i>
   </button>
 
-  <div class="d-none d-md-flex align-items-center flex-grow-1">
-    <span class="text-muted small">
-      <i class="fi fi-rr-calendar me-1"></i> {{ now()->format('l, F j, Y') }}
-    </span>
-  </div>
+  <button type="button" class="sas-nav__search sas-topbar__search" data-sas-cmdk-open>
+    <i class="fi fi-rr-search"></i> Quick find
+    <span class="sas-nav__kbd">Ctrl K</span>
+  </button>
+
+  <div class="d-none d-lg-flex align-items-center flex-grow-1"></div>
 
   <div class="d-flex align-items-center gap-2 ms-auto">
+    <span class="d-none d-md-inline text-muted small text-nowrap">
+      <i class="fi fi-rr-calendar me-1"></i> {{ now()->format('l, F j, Y') }}
+    </span>
     @can('manage appointments')
       <a href="{{ route('appointments.create') }}" class="btn btn-primary btn-sm sas-cmdk-item">
         <i class="fi fi-rr-plus me-1"></i> New Appointment
@@ -61,7 +65,7 @@
             </a>
           @empty
             <div class="sas-empty-state py-4">
-              <i class="fi fi-rr-bell"></i>
+              <div class="sas-empty-state__ring"><i class="fi fi-rr-bell"></i></div>
               <strong>You're all caught up</strong>
               <span class="small">No notifications yet</span>
             </div>
@@ -102,3 +106,15 @@
     </div>
   </div>
 </header>
+
+<script>
+  // Frosted-glass topbar once the page scrolls beneath it — the one
+  // deliberate glass moment in the UI (see .sas-topbar.is-scrolled).
+  (function () {
+    const topbar = document.getElementById('sasTopbar');
+    if (!topbar) return;
+    function sync() { topbar.classList.toggle('is-scrolled', window.scrollY > 4); }
+    window.addEventListener('scroll', sync, { passive: true });
+    sync();
+  })();
+</script>

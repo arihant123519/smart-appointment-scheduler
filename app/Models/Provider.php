@@ -15,8 +15,8 @@ class Provider extends Model
     use HasFactory, ScopedToClinic, SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'clinic_id', 'specialty', 'credentials', 'bio',
-        'default_slot_minutes', 'accepts_telehealth', 'is_active',
+        'user_id', 'clinic_id', 'specialty', 'credentials', 'registration_no',
+        'signature_path', 'bio', 'default_slot_minutes', 'accepts_telehealth', 'is_active',
     ];
 
     protected $casts = [
@@ -54,8 +54,23 @@ class Provider extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function consultations(): HasMany
+    {
+        return $this->hasMany(Consultation::class);
+    }
+
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class);
+    }
+
     public function getNameAttribute(): string
     {
         return $this->user?->name ?? 'Unknown';
+    }
+
+    public function getSignatureUrlAttribute(): ?string
+    {
+        return $this->signature_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->signature_path) : null;
     }
 }

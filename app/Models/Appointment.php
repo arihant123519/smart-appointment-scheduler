@@ -112,6 +112,16 @@ class Appointment extends Model
         return $this->hasOne(IntakeForm::class);
     }
 
+    public function consultation(): HasOne
+    {
+        return $this->hasOne(Consultation::class);
+    }
+
+    public function prescription(): HasOne
+    {
+        return $this->hasOne(Prescription::class);
+    }
+
     public function reminders(): HasMany
     {
         return $this->hasMany(Reminder::class);
@@ -244,6 +254,20 @@ class Appointment extends Model
             self::STATUS_CANCELLED => 'secondary',
             self::STATUS_NO_SHOW => 'danger',
             default => 'secondary',
+        };
+    }
+
+    /** Hex value matching the calendar's status legend (resources/views/calendar/index.blade.php). */
+    public function getStatusHexAttribute(): string
+    {
+        return match ($this->status) {
+            self::STATUS_BOOKED => '#f6b100',
+            self::STATUS_CONFIRMED => '#7239ea',
+            self::STATUS_CHECKED_IN => '#2563EB',
+            self::STATUS_COMPLETED => '#17c653',
+            self::STATUS_NO_SHOW => '#f1416c',
+            self::STATUS_CANCELLED => '#adb5bd',
+            default => '#adb5bd',
         };
     }
 

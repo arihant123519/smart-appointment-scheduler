@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Appointment;
 use App\Notifications\GenericNotification;
 use Illuminate\Console\Command;
+use Illuminate\Notifications\DatabaseNotification;
 
 class NotifyTodaysAppointments extends Command
 {
@@ -14,6 +15,17 @@ class NotifyTodaysAppointments extends Command
 
     public function handle(): int
     {
+        // A "your appointment is today" reminder is only true for one day —
+        // once it rolls over, expire any that are still unread so a stale
+        // (and now literally false) "today" notice doesn't sit at the top of
+        // the bell indefinitely.
+        DatabaseNotification::where('type', GenericNotification::class)
+            ->whereNull('read_at')
+            ->whereDate('created_at', '<', today())
+            ->where(fn ($q) => $q->where('data->key', 'like', 'patient-today-%')
+                ->orWhere('data->key', 'like', 'provider-today-%'))
+            ->update(['read_at' => now()]);
+
         $appointments = Appointment::with(['patient', 'provider.user', 'service'])
             ->whereDate('start_at', today())
             ->active()

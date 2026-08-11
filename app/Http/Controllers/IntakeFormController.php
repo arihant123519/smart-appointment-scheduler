@@ -24,11 +24,9 @@ class IntakeFormController extends Controller
 
     public function edit(Appointment $appointment): View
     {
-        // Patients may only fill their own intake.
-        abort_unless(
-            $appointment->patient_id === auth()->id() || auth()->user()->can('manage appointments'),
-            403
-        );
+        // Patients may fill their own intake; the assigned provider or staff with
+        // `manage appointments` may view/complete it on the patient's behalf.
+        abort_unless($this->canAccessIntake($appointment), 403);
 
         $intake = $appointment->intakeForm ?? new IntakeForm(['schema' => self::SCHEMA]);
         $schema = $intake->schema ?: self::SCHEMA;
@@ -38,10 +36,7 @@ class IntakeFormController extends Controller
 
     public function update(Request $request, Appointment $appointment, AiService $ai): RedirectResponse
     {
-        abort_unless(
-            $appointment->patient_id === auth()->id() || auth()->user()->can('manage appointments'),
-            403
-        );
+        abort_unless($this->canAccessIntake($appointment), 403);
 
         $responses = $request->validate([
             'responses' => ['array'],
@@ -80,10 +75,7 @@ class IntakeFormController extends Controller
     /** Digital self check-in on arrival. */
     public function checkIn(Appointment $appointment): RedirectResponse
     {
-        abort_unless(
-            $appointment->patient_id === auth()->id() || auth()->user()->can('manage appointments'),
-            403
-        );
+        abort_unless($this->canAccessIntake($appointment), 403);
 
         $appointment->update([
             'status' => Appointment::STATUS_CHECKED_IN,
@@ -92,5 +84,15 @@ class IntakeFormController extends Controller
         AuditLog::record('checked_in', $appointment);
 
         return back()->with('success', 'Checked in. Please take a seat.');
+    }
+
+    /** Patient themselves, the assigned provider, or staff with `manage appointments`. */
+    private function canAccessIntake(Appointment $appointment): bool
+    {
+        $user = auth()->user();
+
+        return $appointment->patient_id === $user->id
+            || $user->can('manage appointments')
+            || ($user->provider && $appointment->provider_id === $user->provider->id);
     }
 }

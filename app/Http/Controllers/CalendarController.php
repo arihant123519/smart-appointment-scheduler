@@ -46,7 +46,7 @@ class CalendarController extends Controller
                 'title' => ($a->patient->name ?? 'Patient').' — '.($a->service->name ?? 'Visit'),
                 'start' => $a->start_at->toIso8601String(),
                 'end' => $a->end_at->toIso8601String(),
-                'color' => $a->service->color ?? '#5955D1',
+                'color' => $a->status_hex,
                 'url' => route('appointments.show', $a),
                 'extendedProps' => [
                     'status' => $a->status_label,
@@ -62,6 +62,14 @@ class CalendarController extends Controller
     /** Drag-and-drop reschedule from the calendar. */
     public function reschedule(Request $request, Appointment $appointment, SchedulingService $scheduling): JsonResponse
     {
+        $user = auth()->user();
+        if (! $user->hasRole('system_admin')) {
+            abort_unless($appointment->clinic_id === $user->clinic_id, 404);
+            if ($user->hasRole('provider') && ! $user->hasAnyRole(['clinic_admin', 'front_desk', 'billing'])) {
+                abort_unless($user->provider && $appointment->provider_id === $user->provider->id, 403);
+            }
+        }
+
         $data = $request->validate([
             'start' => ['required', 'date'],
             'end' => ['nullable', 'date'],

@@ -28,8 +28,7 @@
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label" for="dateSelect">Date <span class="text-danger">*</span></label>
-            <input type="date" id="dateSelect" class="form-control" min="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}">
+            <x-outline-field id="dateSelect" type="date" label="Date" required min="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" />
           </div>
           <div class="col-12">
             <span class="form-label" id="slotsLabel">Available times <span class="text-danger">*</span></span>
@@ -46,12 +45,10 @@
             </div>
             <div id="bookForSomeoneElseFields" class="row g-3 mt-1 {{ old('booked_for_name') ? '' : 'd-none' }}">
               <div class="col-md-6">
-                <label class="form-label" for="bookedForName">Their name <span class="text-danger">*</span></label>
-                <input type="text" name="booked_for_name" id="bookedForName" class="form-control" value="{{ old('booked_for_name') }}">
+                <x-outline-field name="booked_for_name" id="bookedForName" label="Their name" required :value="old('booked_for_name')" />
               </div>
               <div class="col-md-6">
-                <label class="form-label" for="bookedForRelationship">Relationship to you <span class="text-danger">*</span></label>
-                <input type="text" name="booked_for_relationship" id="bookedForRelationship" class="form-control" placeholder="e.g. Father, Child, Spouse" value="{{ old('booked_for_relationship') }}">
+                <x-outline-field name="booked_for_relationship" id="bookedForRelationship" label="Relationship to you" required placeholder="e.g. Father, Child, Spouse" :value="old('booked_for_relationship')" />
               </div>
               <div class="col-12 text-muted small">You'll keep receiving the reminders and confirmations for this visit — we'll just note it's for {{ old('booked_for_name') ?: 'them' }}.</div>
             </div>

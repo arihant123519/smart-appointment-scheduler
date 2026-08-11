@@ -23,8 +23,7 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Comments <span class="text-muted fw-normal">(optional)</span></label>
-            <textarea name="comment" class="form-control" rows="3" placeholder="Tell us more about your experience..."></textarea>
+            <x-outline-field name="comment" label="Comments (optional)" textarea rows="3" placeholder="Tell us more about your experience..." />
           </div>
 
           <button class="btn btn-primary w-100">Submit feedback</button>

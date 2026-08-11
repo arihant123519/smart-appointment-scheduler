@@ -33,9 +33,7 @@
       <x-form-field name="phone" label="Phone number" type="tel" :required="true" :value="old('phone')" placeholder="e.g. 9876543210" />
 
       <div class="mb-3">
-        <label class="form-label">Comments <span class="text-muted fw-normal">(optional)</span></label>
-        <textarea name="comment" class="form-control @error('comment') is-invalid @enderror" rows="4" placeholder="What stood out about your visit?">{{ old('comment') }}</textarea>
-        @error('comment')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        <x-outline-field name="comment" label="Comments (optional)" textarea rows="4" placeholder="What stood out about your visit?" :value="old('comment')" />
       </div>
 
       <button class="btn btn-primary w-100 btn-lg">Submit review</button>

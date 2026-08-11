@@ -103,54 +103,6 @@
           <x-empty-state icon="fi-rr-bell" title="No reminders scheduled" />
         @endforelse
       </x-card>
-    </div>
-
-    <div class="col-xl-4">
-      <x-card class="mb-3">
-        <x-slot:title><i class="fi fi-rr-shield-check text-{{ $rc }} me-1"></i> No-show risk</x-slot:title>
-        <div class="text-center">
-          <div id="riskGauge"></div>
-          <x-badge-status :color="$rc" :label="ucfirst($appointment->risk_level).' risk'" class="px-3 py-2" />
-        </div>
-      </x-card>
-
-      @can('manage appointments')
-        <x-card class="mb-3">
-          <x-slot:title><i class="fi fi-rr-refresh text-primary me-1"></i> Update status</x-slot:title>
-          @if (empty(\App\Models\Appointment::TRANSITIONS[$appointment->status] ?? []))
-            <div class="text-center text-muted small py-2 mb-2">
-              <i class="fi fi-rr-lock d-block fs-4 mb-2"></i>
-              This appointment status is locked and can no longer be changed.
-            </div>
-            @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_NO_SHOW], true))
-              <form method="POST" action="{{ route('appointments.reason', $appointment) }}">
-                @csrf @method('PATCH')
-                <input type="text" name="cancellation_reason" class="form-control mb-2" value="{{ $appointment->cancellation_reason }}" placeholder="Reason — e.g. wants to reschedule">
-                <button class="btn btn-outline-primary w-100 btn-sm">Save reason</button>
-              </form>
-            @endif
-          @else
-            <form method="POST" action="{{ route('appointments.status', $appointment) }}">
-              @csrf @method('PATCH')
-              <select name="status" class="form-select mb-2">
-                @foreach ($appointment->availableStatusOptions() as $key => $label)
-                  <option value="{{ $key }}" @selected($appointment->status === $key)>{{ $label }}</option>
-                @endforeach
-              </select>
-              <input type="text" name="cancellation_reason" class="form-control mb-2" placeholder="Reason (if cancelling or no-show — e.g. wants to reschedule)">
-              <button class="btn btn-primary w-100">Update</button>
-            </form>
-          @endif
-        </x-card>
-
-        @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_BOOKED, \App\Models\Appointment::STATUS_CONFIRMED, \App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_NO_SHOW], true))
-          <x-card class="mb-3">
-            <x-slot:title><i class="fi fi-rr-clock text-primary me-1"></i> Suggested reschedule times</x-slot:title>
-            <div id="rescheduleSuggestions" class="text-muted small">Loading suggestions based on this patient's own booking history…</div>
-          </x-card>
-        @endif
-      @endcan
-
       @can('manage patients')
         <x-card class="mb-3">
           <x-slot:title><i class="fi fi-rr-document-signed text-primary me-1"></i> Documents</x-slot:title>
@@ -164,7 +116,7 @@
               @if ($doc->status === 'draft')
                 <form method="POST" action="{{ route('documents.update', $doc) }}" class="mb-2">
                   @csrf @method('PATCH')
-                  <textarea name="content" class="form-control form-control-sm mb-2" rows="5">{{ old('content', $doc->content) }}</textarea>
+                  <div class="mb-2"><x-outline-field name="content" id="docContent{{ $doc->id }}" label="Content" textarea rows="5" :value="old('content', $doc->content)" /></div>
                   <div class="d-flex gap-2">
                     <button class="btn btn-sm btn-outline-secondary">Save edits</button>
                   </div>
@@ -205,6 +157,53 @@
           </div>
         </x-card>
       @endcan
+    </div>
+
+    <div class="col-xl-4">
+      <x-card class="mb-3">
+        <x-slot:title><i class="fi fi-rr-shield-check text-{{ $rc }} me-1"></i> No-show risk</x-slot:title>
+        <div class="text-center">
+          <div id="riskGauge"></div>
+          <x-badge-status :color="$rc" :label="ucfirst($appointment->risk_level).' risk'" class="px-3 py-2" />
+        </div>
+      </x-card>
+
+      @can('manage appointments')
+        <x-card class="mb-3">
+          <x-slot:title><i class="fi fi-rr-refresh text-primary me-1"></i> Update status</x-slot:title>
+          @if (empty(\App\Models\Appointment::TRANSITIONS[$appointment->status] ?? []))
+            <div class="text-center text-muted small py-2 mb-2">
+              <i class="fi fi-rr-lock d-block fs-4 mb-2"></i>
+              This appointment status is locked and can no longer be changed.
+            </div>
+            @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_NO_SHOW], true))
+              <form method="POST" action="{{ route('appointments.reason', $appointment) }}">
+                @csrf @method('PATCH')
+                <div class="mb-2"><x-outline-field name="cancellation_reason" label="Reason" value="{{ $appointment->cancellation_reason }}" placeholder="e.g. wants to reschedule" /></div>
+                <button class="btn btn-outline-primary w-100 btn-sm">Save reason</button>
+              </form>
+            @endif
+          @else
+            <form method="POST" action="{{ route('appointments.status', $appointment) }}">
+              @csrf @method('PATCH')
+              <select name="status" class="form-select mb-2">
+                @foreach ($appointment->availableStatusOptions() as $key => $label)
+                  <option value="{{ $key }}" @selected($appointment->status === $key)>{{ $label }}</option>
+                @endforeach
+              </select>
+              <div class="mb-2"><x-outline-field name="cancellation_reason" label="Reason" placeholder="If cancelling or no-show — e.g. wants to reschedule" /></div>
+              <button class="btn btn-primary w-100">Update</button>
+            </form>
+          @endif
+        </x-card>
+
+        @if (in_array($appointment->status, [\App\Models\Appointment::STATUS_BOOKED, \App\Models\Appointment::STATUS_CONFIRMED, \App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_NO_SHOW], true))
+          <x-card class="mb-3">
+            <x-slot:title><i class="fi fi-rr-clock text-primary me-1"></i> Suggested reschedule times</x-slot:title>
+            <div id="rescheduleSuggestions" class="text-muted small">Loading suggestions based on this patient's own booking history…</div>
+          </x-card>
+        @endif
+      @endcan
 
       <x-card bodyClass="d-grid gap-2">
         <x-slot:title><i class="fi fi-rr-bolt text-primary me-1"></i> Quick actions</x-slot:title>
@@ -217,6 +216,24 @@
             @csrf @method('PATCH')
             <button class="btn btn-light w-100"><i class="fi fi-rr-marker me-1"></i> Digital check-in</button>
           </form>
+        @endif
+
+        @php
+          $canEditConsultation = auth()->user()->hasRole('system_admin')
+            || (auth()->user()->can('manage consultations') && auth()->user()->provider && auth()->user()->provider->id === $appointment->provider_id);
+          $canViewConsultation = $canEditConsultation || auth()->user()->can('view consultations');
+        @endphp
+        @if ($canViewConsultation)
+          <a href="{{ route('consultations.edit', $appointment) }}" class="btn btn-light">
+            <i class="fi fi-rr-stethoscope me-1"></i>
+            {{ $canEditConsultation ? ($appointment->consultation ? 'Consultation' : 'Start Consultation') : 'View Consultation' }}
+            @if ($appointment->consultation?->is_finalized)<span class="badge bg-success-subtle text-success ms-1">Done</span>@endif
+          </a>
+        @endif
+        @if ($canEditConsultation)
+          <a href="{{ route('patient-history.show', $appointment->patient_id) }}" class="btn btn-light">
+            <i class="fi fi-rr-time-past me-1"></i> Patient History
+          </a>
         @endif
 
         @can('manage appointments')

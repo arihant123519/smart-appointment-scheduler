@@ -49,8 +49,7 @@
               <x-form-field name="reason" label="Reason" :value="$appointment->reason" />
             </div>
             <div class="col-12">
-              <label class="form-label">Notes</label>
-              <textarea name="notes" class="form-control" rows="2">{{ $appointment->notes }}</textarea>
+              <x-outline-field name="notes" label="Notes" textarea rows="2" :value="$appointment->notes" />
             </div>
           </div>
           <div class="mt-4 d-flex gap-2">

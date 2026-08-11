@@ -8,7 +8,10 @@
 <aside class="sas-sidebar" id="sasSidebar">
   <a href="{{ route('dashboard') }}" class="sas-sidebar__brand">
     <img src="{{ $sasClinic?->logo_url ?? asset('assets/images/logo.svg') }}" alt="logo" onerror="this.style.display='none'">
-    <span>{{ $sasClinic?->name ?? 'Scheduler' }}</span>
+    <span class="sas-sidebar__brand-text">
+      <span>{{ $sasClinic?->name ?? 'Scheduler' }}</span>
+      <span class="sas-sidebar__brand-sub">Appointment Scheduler</span>
+    </span>
   </a>
 
   <div class="sas-sidebar__identity">
@@ -17,13 +20,6 @@
       <div class="sas-sidebar__identity-name">{{ auth()->user()->name }}</div>
       <div class="sas-sidebar__identity-role">{{ auth()->user()->roles->first()?->name ? ucwords(str_replace('_', ' ', auth()->user()->roles->first()->name)) : 'User' }}</div>
     </div>
-  </div>
-
-  <div class="px-3 pt-3">
-    <button type="button" class="sas-nav__search" data-sas-cmdk-open>
-      <i class="fi fi-rr-search"></i> Quick find
-      <span class="sas-nav__kbd">Ctrl K</span>
-    </button>
   </div>
 
   <nav class="sas-nav">
@@ -53,6 +49,11 @@
         <a href="{{ route('appointments.index') }}" class="sas-nav__link {{ $r('appointments.*') }}">
           <i class="fi fi-rr-clock"></i> Appointments
         </a>
+        @if (auth()->user()->provider || auth()->user()->hasRole('system_admin'))
+          <a href="{{ route('patient-history.index') }}" class="sas-nav__link {{ $r('patient-history.*') }}">
+            <i class="fi fi-rr-users"></i> My Patients
+          </a>
+        @endif
         @can('manage waitlist')
           <a href="{{ route('waitlist.index') }}" class="sas-nav__link {{ $r('waitlist.*') }}">
             <i class="fi fi-rr-list"></i> Waitlist
@@ -158,8 +159,11 @@
           </a>
         @endcan
         @can('manage settings')
-          <a href="{{ route('settings.integrations.edit') }}" class="sas-nav__link {{ $r('settings.*') }}">
+          <a href="{{ route('settings.integrations.edit') }}" class="sas-nav__link {{ $r('settings.integrations.*') }}">
             <i class="fi fi-rr-settings"></i> Integrations
+          </a>
+          <a href="{{ route('settings.prescription.edit') }}" class="sas-nav__link {{ $r('settings.prescription.*') }}">
+            <i class="fi fi-rr-prescription"></i> Prescription Letterhead
           </a>
         @endcan
       </div>
@@ -221,7 +225,9 @@
     // window.bootstrap) loads near the bottom. So the Bootstrap Modal
     // instance is resolved lazily, at the moment it's actually opened,
     // rather than up front here — by then bootstrap has always loaded.
-    const openBtn = document.querySelector('[data-sas-cmdk-open]');
+    // The trigger button now lives in the topbar partial, rendered *after*
+    // this script — delegate the click from `document` instead of binding
+    // to a queried element, so DOM order between partials doesn't matter.
     const modalEl = document.getElementById('sasCmdPalette');
     const input = document.getElementById('sasCmdInput');
     const results = document.getElementById('sasCmdResults');
@@ -273,7 +279,9 @@
       render(q ? all.filter(function (i) { return i.label.toLowerCase().includes(q); }) : all);
     }
 
-    openBtn && openBtn.addEventListener('click', openPalette);
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('[data-sas-cmdk-open]')) openPalette();
+    });
     document.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
     });

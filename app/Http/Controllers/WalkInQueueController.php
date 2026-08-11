@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\WalkInQueueUpdated;
 use App\Models\AuditLog;
 use App\Models\Provider;
 use App\Models\Service;
 use App\Models\WalkInQueue;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,21 +17,10 @@ class WalkInQueueController extends Controller
 {
     public function index(): View
     {
-        $entries = WalkInQueue::with(['patient', 'provider.user', 'service'])
-            ->forCurrentClinic()
-            ->whereIn('status', ['waiting', 'serving'])
-            ->orderByRaw("status = 'serving' desc")
-            ->orderBy('joined_at')
-            ->get();
+        $clinicId = auth()->user()->clinic_id ?? 1;
 
-        $completedToday = WalkInQueue::with(['patient', 'provider.user', 'service'])
-            ->forCurrentClinic()
-            ->whereIn('status', ['done', 'left'])
-            ->whereDate('completed_at', today())
-            ->orderByDesc('completed_at')
-            ->get();
-
-        $stats = $this->queueStats($entries);
+        [$entries, $completedToday] = WalkInQueue::activeAndCompletedForClinic($clinicId);
+        $stats = WalkInQueue::statsForClinic($clinicId, $entries);
 
         $providers = Provider::with('user')->forCurrentClinic()->where('is_active', true)->get();
         $services = Service::forCurrentClinic()->where('is_active', true)->orderBy('name')->get();
@@ -38,45 +29,28 @@ class WalkInQueueController extends Controller
     }
 
     /**
-     * Front-desk KPIs for the queue: today's throughput, how long people are
-     * actually waiting, and a couple of longer-range rollups so a slow week
-     * doesn't just vanish once the day's entries scroll off the table.
-     *
-     * @param  \Illuminate\Support\Collection<int, WalkInQueue>  $activeEntries  the currently waiting/serving entries, already loaded — reused to avoid an extra query
-     * @return array<string, int|float|null>
+     * JSON snapshot of the queue (stats + server-rendered row/modal HTML),
+     * polled by the front-end after a walkins.updated broadcast ping so the
+     * page updates without a full reload. Kept as a same-origin, authenticated
+     * fetch — deliberately not the data carried by the broadcast itself — so
+     * patient names/phone numbers never pass through the third-party Pusher
+     * relay (see WalkInQueueUpdated).
      */
-    private function queueStats($activeEntries): array
+    public function partial(): JsonResponse
     {
-        $base = WalkInQueue::forCurrentClinic();
+        $clinicId = auth()->user()->clinic_id ?? 1;
 
-        $doneToday = (clone $base)->where('status', 'done')->whereDate('completed_at', today())->count();
-        $leftToday = (clone $base)->where('status', 'left')->whereDate('completed_at', today())->count();
-        $doneThisWeek = (clone $base)->where('status', 'done')->where('completed_at', '>=', now()->subDays(6)->startOfDay())->count();
-        $doneThisMonth = (clone $base)->where('status', 'done')->where('completed_at', '>=', now()->subDays(29)->startOfDay())->count();
+        [$entries, $completedToday] = WalkInQueue::activeAndCompletedForClinic($clinicId);
+        $stats = WalkInQueue::statsForClinic($clinicId, $entries);
 
-        // Average wait (joined -> called in) for everyone actually called in
-        // today — the clearest read on how long today's walk-ins are sitting
-        // before being seen.
-        $avgWaitMinutes = (clone $base)
-            ->whereNotNull('called_at')
-            ->whereDate('called_at', today())
-            ->get(['joined_at', 'called_at'])
-            ->avg(fn (WalkInQueue $e) => $e->joined_at->diffInMinutes($e->called_at, true));
-
-        $processedToday = $doneToday + $leftToday;
-
-        return [
-            'waiting' => $activeEntries->where('status', 'waiting')->count(),
-            'serving' => $activeEntries->where('status', 'serving')->count(),
-            'done_today' => $doneToday,
-            'left_today' => $leftToday,
-            'avg_wait_minutes' => $avgWaitMinutes ? (int) round($avgWaitMinutes) : null,
-            // Left/no-show as a share of everyone processed today — a rising
-            // rate usually means the wait is too long, not a staffing fluke.
-            'left_rate' => $processedToday > 0 ? round($leftToday / $processedToday * 100) : null,
-            'done_this_week' => $doneThisWeek,
-            'done_this_month' => $doneThisMonth,
-        ];
+        return response()->json([
+            'stats' => $stats,
+            'waitingCount' => $entries->where('status', 'waiting')->count(),
+            'completedCount' => $completedToday->count(),
+            'waitingHtml' => view('walkins.partials.waiting-rows', ['entries' => $entries])->render(),
+            'completedHtml' => view('walkins.partials.completed-rows', ['entries' => $completedToday])->render(),
+            'modalsHtml' => view('walkins.partials.patient-modals', ['entries' => $entries])->render(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -96,6 +70,7 @@ class WalkInQueueController extends Controller
         ]);
 
         AuditLog::record('walk_in_joined', $entry, null, $entry->toArray());
+        event(new WalkInQueueUpdated($entry->clinic_id));
 
         return back()->with('success', $entry->name.' added to the queue — position '.$entry->position.'.');
     }
@@ -117,14 +92,18 @@ class WalkInQueueController extends Controller
 
         $walkin->save();
         AuditLog::record('walk_in_status_changed', $walkin, $before, $walkin->toArray());
+        event(new WalkInQueueUpdated($walkin->clinic_id));
 
         return back()->with('success', 'Queue updated.');
     }
 
     public function destroy(WalkInQueue $walkin): RedirectResponse
     {
+        $clinicId = $walkin->clinic_id;
+
         AuditLog::record('walk_in_removed', $walkin, $walkin->toArray());
         $walkin->delete();
+        event(new WalkInQueueUpdated($clinicId));
 
         return back()->with('success', 'Removed from queue.');
     }

@@ -37,8 +37,7 @@
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Date <span class="text-danger">*</span></label>
-              <input type="date" id="dateSelect" class="form-control" min="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}">
+              <x-outline-field id="dateSelect" type="date" label="Date" required min="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" />
             </div>
             <div class="col-12">
               <label class="form-label">Available slots <span class="text-danger">*</span></label>
@@ -60,8 +59,7 @@
               <x-form-field name="reason" label="Reason" :value="old('reason')" placeholder="e.g. annual checkup" />
             </div>
             <div class="col-12">
-              <label class="form-label">Notes</label>
-              <textarea name="notes" class="form-control" rows="2">{{ old('notes') }}</textarea>
+              <x-outline-field name="notes" label="Notes" textarea rows="2" :value="old('notes')" />
             </div>
 
             <div class="col-12">
@@ -82,8 +80,7 @@
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Number of occurrences</label>
-                  <input type="number" name="occurrences" class="form-control" value="4" min="2" max="52">
+                  <x-outline-field name="occurrences" type="number" label="Number of occurrences" value="4" min="2" max="52" />
                 </div>
               </div>
             </div>

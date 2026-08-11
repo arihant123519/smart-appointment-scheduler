@@ -87,26 +87,34 @@ class ReportController extends Controller
         ];
     }
 
-    /** Appointment status funnel over the last 30 days (booked → completed vs. lost). */
+    /**
+     * Appointment status funnel over the last 30 days (booked → completed
+     * vs. lost). Booked/Confirmed/Checked In/Completed are cumulative —
+     * each counts appointments that reached at least that stage — so the
+     * funnel narrows monotonically and every percentage stays <= 100% of
+     * the Booked total. Cancelled/No Show are the two lost-from-the-funnel
+     * outcomes, each counted out of that same Booked total.
+     */
     private function funnel(?int $clinicId = null): array
     {
         $window = now()->subDays(30);
 
-        $counts = Appointment::where('start_at', '>=', $window)
+        $base = Appointment::where('start_at', '>=', $window)
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
-            ->forCurrentClinic()
-            ->select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
-            ->pluck('total', 'status');
+            ->forCurrentClinic();
 
-        $order = [
-            Appointment::STATUS_BOOKED, Appointment::STATUS_CONFIRMED, Appointment::STATUS_CHECKED_IN,
-            Appointment::STATUS_COMPLETED, Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW,
+        return [
+            Appointment::STATUSES[Appointment::STATUS_BOOKED] => (clone $base)->count(),
+            Appointment::STATUSES[Appointment::STATUS_CONFIRMED] => (clone $base)->whereIn('status', [
+                Appointment::STATUS_CONFIRMED, Appointment::STATUS_CHECKED_IN, Appointment::STATUS_COMPLETED,
+            ])->count(),
+            Appointment::STATUSES[Appointment::STATUS_CHECKED_IN] => (clone $base)->whereIn('status', [
+                Appointment::STATUS_CHECKED_IN, Appointment::STATUS_COMPLETED,
+            ])->count(),
+            Appointment::STATUSES[Appointment::STATUS_COMPLETED] => (clone $base)->where('status', Appointment::STATUS_COMPLETED)->count(),
+            Appointment::STATUSES[Appointment::STATUS_CANCELLED] => (clone $base)->where('status', Appointment::STATUS_CANCELLED)->count(),
+            Appointment::STATUSES[Appointment::STATUS_NO_SHOW] => (clone $base)->where('status', Appointment::STATUS_NO_SHOW)->count(),
         ];
-
-        return collect($order)->mapWithKeys(fn ($status) => [
-            (Appointment::STATUSES[$status] ?? $status) => (int) ($counts[$status] ?? 0),
-        ])->all();
     }
 
     /**

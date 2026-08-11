@@ -16,6 +16,7 @@ class Clinic extends Model
         'country', 'timezone', 'settings', 'is_active',
         'compliance_agreements_signed_at', 'abdm_health_id',
         'logo_path', 'primary_color',
+        'prescription_header_note', 'prescription_footer_text',
     ];
 
     protected $casts = [

@@ -62,6 +62,17 @@ class PaymentController extends Controller
 
     public function refund(Payment $payment, PaymentService $payments): RedirectResponse
     {
+        $user = auth()->user();
+        if (! $user->hasRole('system_admin')) {
+            $payment->loadMissing('patient');
+            abort_unless($payment->patient && $payment->patient->clinic_id === $user->clinic_id, 404);
+        }
+
+        // Only an actually-collected, not-already-refunded transaction can be
+        // refunded — blocks refunding a pending/failed payment and blocks a
+        // double refund (refund() flips the original to status=refunded).
+        abort_unless(in_array($payment->type, ['copay', 'fee', 'deposit', 'no_show_fee'], true) && $payment->status === 'paid', 422);
+
         $refund = $payments->refund($payment);
         AuditLog::record('payment_refunded', $refund, null, $refund->toArray());
 

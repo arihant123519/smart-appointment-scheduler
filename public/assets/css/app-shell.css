@@ -1,14 +1,18 @@
 /* Smart Appointment Scheduler — app shell layout (sidebar + topbar + content)
-   Metronic-inspired: light accordion sidebar with tinted-pill active state,
-   sticky topbar, toolbar-style page header. */
+   Premium SaaS pass: light sidebar with an accent-bar active state, a
+   glass-on-scroll sticky topbar, generous whitespace, soft depth. */
 :root {
-  --sas-sidebar-width: 268px;
-  --sas-topbar-height: 70px;
+  --sas-sidebar-width: 272px;
+  --sas-topbar-height: 72px;
   --sas-primary: var(--sas-primary-600, #2563EB);
 }
 
 body {
-  background: var(--sas-gray-100, #f1f5f9); /* Ichelon: slate-100 canvas */
+  background: var(--sas-gray-100, #f1f5f9);
+  background-image:
+    radial-gradient(ellipse 900px 420px at 15% -8%, rgba(59, 130, 246, .05), transparent 60%),
+    radial-gradient(ellipse 700px 380px at 100% 0%, rgba(124, 58, 237, .035), transparent 55%);
+  background-attachment: fixed;
 }
 
 .sas-layout {
@@ -36,29 +40,42 @@ body {
   height: var(--sas-topbar-height);
   display: flex;
   align-items: center;
-  gap: .6rem;
+  gap: .65rem;
   padding: 0 1.35rem;
   border-bottom: 1px solid var(--sas-gray-100, #eceef2);
   font-weight: 800;
-  letter-spacing: -.01em;
+  letter-spacing: -.015em;
   color: var(--sas-gray-900);
   text-decoration: none;
-  font-size: 1.05rem;
+  font-size: 1.02rem;
+  flex-shrink: 0;
 }
 
-.sas-sidebar__brand img { height: 30px; }
+.sas-sidebar__brand img { height: 30px; border-radius: var(--sas-radius-sm); }
+.sas-sidebar__brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.sas-sidebar__brand-sub {
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--sas-gray-400);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
 
 /* Compact identity card — who you are + which clinic, always visible above
    the nav so multi-tenant context is never ambiguous while scrolling. */
 .sas-sidebar__identity {
   display: flex;
   align-items: center;
-  gap: .6rem;
-  margin: .85rem 1rem 0;
-  padding: .6rem .7rem;
+  gap: .65rem;
+  margin: .9rem 1rem 0;
+  padding: .55rem .65rem;
   border-radius: var(--sas-radius-md);
   background: var(--sas-gray-50);
+  border: 1px solid transparent;
+  transition: border-color .15s var(--sas-ease), background .15s var(--sas-ease);
 }
+.sas-sidebar__identity:hover { border-color: var(--sas-gray-200); background: #fff; }
+.sas-sidebar__identity .sas-avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--sas-primary-100); }
 .sas-sidebar__identity-text { min-width: 0; }
 .sas-sidebar__identity-name {
   font-size: .82rem;
@@ -75,6 +92,8 @@ body {
   letter-spacing: .03em;
 }
 
+/* Search trigger — shared look for the sidebar quick-find and the topbar
+   search bar; opens the same #sasCmdPalette command palette either place. */
 .sas-nav__search {
   display: flex;
   align-items: center;
@@ -87,9 +106,9 @@ body {
   color: var(--sas-gray-500);
   font-size: .85rem;
   cursor: pointer;
-  transition: border-color .15s, background .15s;
+  transition: border-color .15s var(--sas-ease), background .15s var(--sas-ease), box-shadow .15s var(--sas-ease);
 }
-.sas-nav__search:hover { border-color: var(--sas-primary-200); background: #fff; }
+.sas-nav__search:hover { border-color: var(--sas-primary-200); background: #fff; box-shadow: var(--sas-shadow-xs); }
 .sas-nav__kbd {
   margin-left: auto;
   font-size: .68rem;
@@ -100,6 +119,13 @@ body {
   background: #fff;
 }
 
+/* Topbar variant — fixed comfortable width, sits inline with the header row */
+.sas-topbar__search {
+  width: 280px;
+  max-width: 100%;
+}
+@media (max-width: 767.98px) { .sas-topbar__search { display: none; } }
+
 .sas-nav {
   flex: 1;
   overflow-y: auto;
@@ -109,10 +135,10 @@ body {
 .sas-nav__section {
   font-size: .68rem;
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .08em;
   color: var(--sas-gray-500, #9aa1ad);
   font-weight: 700;
-  padding: 1rem .85rem .4rem;
+  padding: 1.15rem .85rem .5rem;
 }
 
 .sas-nav__section--toggle {
@@ -122,44 +148,60 @@ body {
   border: 0;
   background: transparent;
   cursor: pointer;
+  border-radius: var(--sas-radius-sm);
+  transition: background .15s var(--sas-ease), color .15s var(--sas-ease);
 }
+.sas-nav__section--toggle:hover { color: var(--sas-gray-700); }
 .sas-nav__chevron {
   margin-left: auto;
   font-size: .8rem !important;
-  transition: transform .18s ease;
+  transition: transform .18s var(--sas-ease);
 }
 .sas-nav__section--toggle[aria-expanded="false"] .sas-nav__chevron {
   transform: rotate(-90deg);
 }
 
 .sas-nav__link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: .75rem;
-  padding: .6rem .85rem;
+  padding: .58rem .85rem;
   border-radius: var(--sas-radius-md, .6rem);
   color: var(--sas-gray-700, #525866);
   text-decoration: none;
   font-weight: 500;
-  font-size: .9rem;
-  margin-bottom: .15rem;
-  transition: background .15s, color .15s;
+  font-size: .875rem;
+  margin-bottom: .1rem;
+  transition: background .16s var(--sas-ease), color .16s var(--sas-ease), transform .16s var(--sas-ease);
 }
 
-.sas-nav__link i { width: 20px; text-align: center; font-size: 1.05rem; line-height: 1; color: var(--sas-gray-400); transition: color .15s; }
+.sas-nav__link i { width: 20px; text-align: center; font-size: 1.05rem; line-height: 1; color: var(--sas-gray-400); transition: color .15s var(--sas-ease); }
 
 .sas-nav__link:hover {
   background: var(--sas-gray-50);
   color: var(--sas-gray-900);
+  transform: translateX(1px);
 }
 .sas-nav__link:hover i { color: var(--sas-gray-600); }
 
 .sas-nav__link.active {
   background: var(--sas-primary-50, #f2f1fc);
   color: var(--sas-primary-700, #3d3a9c);
-  font-weight: 700;
+  font-weight: 600;
 }
 .sas-nav__link.active i { color: var(--sas-primary); }
+.sas-nav__link.active::before {
+  content: '';
+  position: absolute;
+  left: -.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 4px 4px 0;
+  background: var(--sas-primary);
+}
 
 .sas-nav__link .badge { margin-left: auto; }
 
@@ -183,7 +225,7 @@ body {
 
 .sas-topbar {
   height: var(--sas-topbar-height);
-  background: #ffffff; /* Ichelon: flat, no glassmorphism */
+  background: #ffffff;
   border-bottom: 1px solid var(--sas-gray-100, #eceef2);
   display: flex;
   align-items: center;
@@ -192,11 +234,23 @@ body {
   position: sticky;
   top: 0;
   z-index: 1030;
+  transition: background-color .2s var(--sas-ease), box-shadow .2s var(--sas-ease), border-color .2s var(--sas-ease);
+}
+/* Frosted-glass state once the page scrolls under it — the one deliberate
+   glass moment in the UI, toggled by the small script in the topbar partial. */
+.sas-topbar.is-scrolled {
+  background: var(--sas-glass-bg);
+  -webkit-backdrop-filter: var(--sas-glass-blur);
+  backdrop-filter: var(--sas-glass-blur);
+  box-shadow: var(--sas-shadow-sm);
 }
 
 .sas-content {
-  padding: 1.75rem;
+  padding: 1.75rem 2rem 2.5rem;
   flex: 1;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 /* --------------------------------------------------------------------------
@@ -206,41 +260,115 @@ body {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: .75rem;
-  padding-bottom: 1.15rem;
-  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.75rem;
   border-bottom: 1px solid var(--sas-gray-100);
 }
-.sas-page-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.015em; margin: 0; color: var(--sas-gray-900); }
-.sas-page-toolbar .breadcrumb {
-  --bs-breadcrumb-divider: '/';
-  font-size: .78rem;
+.sas-page-toolbar__actions { margin-top: .1rem; }
+.sas-page-title { font-size: 2.125rem; font-weight: 800; letter-spacing: -.02em; margin: 0; color: var(--sas-gray-900); line-height: 1.2; }
+.sas-page-toolbar__eyebrow {
+  display: block;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
   color: var(--sas-gray-500);
-  margin-top: .25rem;
+  margin-bottom: .3rem;
+}
+.sas-page-toolbar__desc {
+  font-size: var(--sas-fs-base);
+  color: var(--sas-gray-500);
+  margin: .35rem 0 0;
+  max-width: 56ch;
+}
+.sas-page-toolbar__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--sas-radius-lg);
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  margin-top: .1rem;
+  /* Default page-header tint — violet, consistent across every page header
+     (Audit Logs, Notifications, ...) since it's chrome, not a status color.
+     A page can still override by adding its own bg-*/text-* utility class
+     to the <i> it yields into @section('page_icon'), but most won't need to. */
+  background: var(--sas-accent-subtle);
+  color: var(--sas-accent-emphasis);
 }
 .sas-page-toolbar__actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+@media (max-width: 575.98px) {
+  .sas-page-toolbar__icon { display: none; }
+}
 
 /* Stat cards */
 .sas-stat__icon {
-  width: 52px;
-  height: 52px;
+  width: 65px;
+  height: 65px;
   border-radius: var(--sas-radius-md, .8rem);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 2rem;
+  position: relative;
+}
+.sas-stat__icon::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .5), transparent 60%);
+}
+.sas-stat__icon i { position: relative; z-index: 1; }
+
+.sas-stat__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: .15rem;
+  font-size: .74rem;
+  font-weight: 700;
+  padding: .1rem .4rem;
+  border-radius: var(--sas-radius-sm);
+}
+.sas-stat__delta.text-success { background: var(--sas-success-subtle); }
+.sas-stat__delta.text-danger { background: var(--sas-danger-subtle); }
+.sas-stat__caption { font-size: .76rem; color: var(--sas-gray-500); margin-top: .15rem; }
+
+/* Section label — a quiet divider between dashboard groupings; not a full
+   heading, just enough hierarchy to let the eye scan the page in chunks. */
+.sas-section-label {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--sas-gray-500);
+  margin: 2.25rem 0 .85rem;
+}
+.sas-section-label:first-child { margin-top: 0; }
+.sas-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sas-gray-100);
 }
 
 /* --------------------------------------------------------------------------
    Mobile
    -------------------------------------------------------------------------- */
 @media (max-width: 991.98px) {
-  .sas-sidebar { transform: translateX(-100%); }
+  .sas-sidebar { transform: translateX(-100%); box-shadow: var(--sas-shadow-float); }
   .sas-sidebar.open { transform: translateX(0); }
   .sas-main { margin-left: 0; }
   .sas-sidebar__toggle { display: inline-flex; }
-  .sas-content { padding: 1.25rem; }
+  .sas-content { padding: 1.25rem 1.25rem 2rem; }
+  .sas-page-title { font-size: 1.5rem; }
+}
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .sas-content { padding: 1.5rem 1.5rem 2rem; }
+  .sas-page-title { font-size: 1.75rem; }
 }
 
 .sas-backdrop {

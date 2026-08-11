@@ -53,19 +53,40 @@
   --sas-danger:  #dc2626; --sas-danger-subtle:  #fef2f2; --sas-danger-emphasis:  #b91c1c;
   --sas-info:    #2563eb; --sas-info-subtle:    #eff6ff; --sas-info-emphasis:    #1d4ed8;
 
-  /* Radius scale — Ichelon: chips 4px, controls 8px, cards 12px, surfaces 16px max, never pill */
-  --sas-radius-sm: .25rem;
-  --sas-radius-md: .5rem;
-  --sas-radius-lg: .75rem;
-  --sas-radius-xl: .75rem;
-  --sas-radius-2xl: 1rem;
+  /* Accent — violet, reserved for a single special surface at a time (never
+     competes with the sapphire primary). First use: money-moving audit
+     events and the audit/security module's icon accent. */
+  --sas-accent: #7c3aed; --sas-accent-subtle: #f5f3ff; --sas-accent-emphasis: #6d28d9;
 
-  /* Shadow scale — flat house style: defined 1px borders carry weight, shadow is a whisper */
+  /* Radius scale — premium SaaS pass: chips 6px, controls 10px, cards 16px, surfaces 20px max, never pill */
+  --sas-radius-sm: .375rem;
+  --sas-radius-md: .625rem;
+  --sas-radius-lg: 1rem;
+  --sas-radius-xl: 1rem;
+  --sas-radius-2xl: 1.25rem;
+
+  /* Shadow scale — soft, layered elevation (defined edge + a real but gentle shadow) */
   --sas-shadow-xs: 0 1px 2px rgba(15, 23, 42, .04);
-  --sas-shadow-sm: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px -1px rgba(15, 23, 42, .06);
-  --sas-shadow-md: 0 .5rem 1.5rem rgba(15, 23, 42, .08);
-  --sas-shadow-lg: 0 1rem 2.5rem rgba(15, 23, 42, .10);
-  --sas-shadow-brand: none;
+  --sas-shadow-sm: 0 1px 2px rgba(15, 23, 42, .04), 0 1px 3px rgba(15, 23, 42, .06);
+  --sas-shadow-md: 0 4px 12px rgba(15, 23, 42, .06), 0 2px 4px rgba(15, 23, 42, .04);
+  --sas-shadow-lg: 0 12px 32px rgba(15, 23, 42, .10), 0 4px 8px rgba(15, 23, 42, .04);
+  --sas-shadow-float: 0 20px 40px -12px rgba(15, 23, 42, .16), 0 6px 12px -4px rgba(15, 23, 42, .06);
+  --sas-shadow-brand: 0 1px 2px rgba(37, 99, 235, .05);
+  --sas-shadow-brand-lg: 0 8px 20px -6px rgba(37, 99, 235, .35);
+
+  /* Soft gradients — used sparingly: hero surfaces, icon tiles, chart fills, focal accents */
+  --sas-gradient-brand: linear-gradient(135deg, #2563eb 0%, #3b82f6 55%, #60a5fa 100%);
+  --sas-gradient-brand-soft: linear-gradient(135deg, var(--sas-primary-50) 0%, var(--sas-primary-100) 100%);
+  --sas-gradient-success-soft: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  --sas-gradient-warning-soft: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  --sas-gradient-danger-soft: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  --sas-gradient-mesh: radial-gradient(ellipse 80% 60% at 15% -10%, rgba(59, 130, 246, .16), transparent 60%),
+                       radial-gradient(ellipse 60% 50% at 100% 0%, rgba(124, 58, 237, .08), transparent 55%);
+
+  /* Glass — reserved for the sticky topbar-on-scroll and floating overlays only */
+  --sas-glass-bg: rgba(255, 255, 255, .78);
+  --sas-glass-border: rgba(226, 232, 240, .8);
+  --sas-glass-blur: saturate(180%) blur(14px);
 
   /* Spacing scale (8px grid) */
   --sas-space-1: .25rem;
@@ -77,18 +98,19 @@
   --sas-space-8: 2rem;
   --sas-space-10: 2.5rem;
 
-  /* Type scale */
+  /* Type scale — Caption 13 / Body 15 / Card 18 / Section 24 / Page title 34 */
   --sas-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --sas-fs-xs: .72rem;
   --sas-fs-sm: .82rem;
-  --sas-fs-base: .95rem;
-  --sas-fs-lg: 1.1rem;
-  --sas-fs-xl: 1.35rem;
+  --sas-fs-base: .9375rem;
+  --sas-fs-lg: 1.125rem;
+  --sas-fs-xl: 1.375rem;
   --sas-fs-2xl: 1.75rem;
-  --sas-fs-3xl: 2.25rem;
+  --sas-fs-3xl: 2.125rem;
 
   /* Motion */
   --sas-ease: cubic-bezier(.4, 0, .2, 1);
+  --sas-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
 
   /* --------------------------------------------------------------------
      Bootstrap native palette override — the vendor theme (styles.css)
@@ -252,14 +274,22 @@ a:hover { color: var(--sas-primary-700); }
 .badge-light-info    { background: var(--sas-info-subtle);    color: var(--sas-info-emphasis); }
 .badge-light-secondary, .badge-light { background: var(--sas-gray-100); color: var(--sas-gray-700); }
 .badge-light-dark { background: var(--sas-gray-200); color: var(--sas-gray-900); }
+.badge-light-accent { background: var(--sas-accent-subtle); color: var(--sas-accent-emphasis); }
+
+/* Raw bg-{color}-subtle / text-{color} utilities — Bootstrap only ships these
+   for its own theme colors, but x-badge-status/x-stat-widget accept any
+   color name, so "accent" needs its own pair to be usable the same way. */
+.bg-accent-subtle { background-color: var(--sas-accent-subtle) !important; }
+.text-accent { color: var(--sas-accent-emphasis) !important; }
 
 /* --------------------------------------------------------------------------
    Cards
    -------------------------------------------------------------------------- */
 .card {
-  border: 0;
+  border: 1px solid var(--sas-gray-100);
   border-radius: var(--sas-radius-lg);
   box-shadow: var(--sas-shadow-sm);
+  transition: box-shadow .2s var(--sas-ease), border-color .2s var(--sas-ease);
 }
 .card-header {
   background: transparent;
@@ -274,25 +304,47 @@ a:hover { color: var(--sas-primary-700); }
 }
 
 .sas-card {
-  border: 0;
+  border: 1px solid var(--sas-gray-100);
   border-radius: var(--sas-radius-lg);
   box-shadow: var(--sas-shadow-sm);
 }
 
 .sas-card-hover {
-  transition: transform .18s var(--sas-ease), box-shadow .18s var(--sas-ease);
+  transition: transform .22s var(--sas-ease), box-shadow .22s var(--sas-ease), border-color .22s var(--sas-ease);
 }
 .sas-card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--sas-shadow-lg);
+  transform: translateY(-3px);
+  box-shadow: var(--sas-shadow-float);
+  border-color: var(--sas-gray-200);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sas-card-hover:hover { transform: none; }
 }
 
+/* Hero surface — soft brand gradient + a faint radial mesh highlight, never a hard glossy sheen */
 .sas-card-hero {
   border: 0;
   color: #fff;
-  background: var(--sas-primary-600); /* Ichelon: flat, no gradients/glassmorphism as decoration */
+  background: var(--sas-gradient-brand);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--sas-shadow-brand-lg);
+}
+.sas-card-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 100% at 100% 0%, rgba(255, 255, 255, .18), transparent 60%);
+  pointer-events: none;
 }
 .sas-card-hero > * { position: relative; z-index: 2; }
+
+/* Glass surface — reserved for the topbar-on-scroll state and floating command palette */
+.sas-glass {
+  background: var(--sas-glass-bg);
+  -webkit-backdrop-filter: var(--sas-glass-blur);
+  backdrop-filter: var(--sas-glass-blur);
+  border-color: var(--sas-glass-border) !important;
+}
 
 /* Card header with a trailing actions row ("toolbar") — the recurring
    title + filter/action-buttons pattern across index pages. */
@@ -368,6 +420,63 @@ a:hover { color: var(--sas-primary-700); }
 }
 .form-check-input:focus {
   box-shadow: 0 0 0 .2rem var(--sas-primary-100);
+}
+
+/* --------------------------------------------------------------------------
+   Outline field — plain label-above-input, bold label + simple bordered box.
+   No floating animation, no notch — label is a normal block element above
+   the input. Markup: resources/views/components/outline-field.blade.php
+   (fieldset/legend elements it still emits are unused here and hidden).
+   -------------------------------------------------------------------------- */
+.sas-outline-field {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.sas-outline-field__label {
+  order: -1;
+  font-weight: 700;
+  font-size: var(--sas-fs-sm);
+  color: var(--sas-gray-900);
+}
+.sas-outline-field__fieldset {
+  display: none;
+}
+.sas-outline-field__input {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--sas-gray-300);
+  border-radius: var(--sas-radius-md);
+  outline: none;
+  padding: .55rem .85rem;
+  font-size: var(--sas-fs-base);
+  color: var(--sas-gray-800);
+  transition: border-color .15s var(--sas-ease), box-shadow .15s var(--sas-ease);
+}
+.sas-outline-field__input::placeholder {
+  color: var(--sas-gray-400);
+}
+textarea.sas-outline-field__input {
+  resize: vertical;
+  min-height: 5.5rem;
+}
+.sas-outline-field:hover .sas-outline-field__input {
+  border-color: var(--sas-gray-400);
+}
+.sas-outline-field__input:focus {
+  border-color: var(--sas-primary);
+  box-shadow: 0 0 0 .2rem var(--sas-primary-100);
+}
+.sas-outline-field__input:disabled {
+  background: var(--sas-gray-50);
+  color: var(--sas-gray-400);
+}
+.sas-outline-field.is-invalid .sas-outline-field__input {
+  border-color: var(--sas-danger);
+}
+.sas-outline-field.is-invalid .sas-outline-field__input:focus {
+  box-shadow: 0 0 0 .2rem var(--sas-danger-subtle);
 }
 
 /* --------------------------------------------------------------------------
@@ -457,19 +566,52 @@ a:hover { color: var(--sas-primary-700); }
 .sas-empty-state {
   text-align: center;
   color: var(--sas-gray-500);
-  padding: 2.5rem 1rem;
+  padding: 3rem 1rem;
 }
-.sas-empty-state i {
-  display: block;
-  font-size: 1.75rem;
-  margin-bottom: .5rem;
-  color: var(--sas-gray-300);
+.sas-empty-state__ring {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto .9rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sas-gray-50);
+  border: 1px solid var(--sas-gray-100);
+}
+.sas-empty-state__ring i {
+  font-size: 1.4rem;
+  color: var(--sas-gray-400);
 }
 .sas-empty-state strong {
   display: block;
-  color: var(--sas-gray-600);
+  font-size: var(--sas-fs-base);
+  color: var(--sas-gray-700);
   font-weight: 600;
-  margin-bottom: .15rem;
+  margin-bottom: .2rem;
+}
+.sas-empty-state .small { color: var(--sas-gray-500); }
+
+/* --------------------------------------------------------------------------
+   Chart slot — reserves height and shows a shimmer until ApexCharts fills it,
+   so charts never cause a layout jump on load.
+   -------------------------------------------------------------------------- */
+.sas-chart-slot { min-height: var(--sas-chart-h, 260px); }
+.sas-chart-slot:empty {
+  position: relative;
+  overflow: hidden;
+  background: var(--sas-gray-50);
+  border-radius: var(--sas-radius-md);
+}
+.sas-chart-slot:empty::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .8), transparent);
+  background-size: 200% 100%;
+  animation: sasShimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sas-chart-slot:empty::after { animation: none; }
 }
 
 /* --------------------------------------------------------------------------
@@ -584,14 +726,35 @@ a:hover { color: var(--sas-primary-700); }
   font-weight: 600;
   font-size: var(--sas-fs-sm);
 }
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  min-width: 30px;
+  height: 30px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .5rem !important;
+}
 .dataTables_wrapper .dataTables_paginate .paginate_button.current {
   background: var(--sas-primary) !important;
   color: #fff !important;
   box-shadow: var(--sas-shadow-brand);
 }
-.dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.current) {
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.current):not(.disabled) {
   background: var(--sas-gray-100) !important;
   color: var(--sas-gray-900) !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  color: var(--sas-gray-300) !important;
+  cursor: default;
+}
+/* Bottom info + pagination row — comfortable padding so it reads as part of
+   the card, not raw plugin markup bolted underneath the table. */
+.dataTables_wrapper {
+  padding: 0 var(--sas-space-2) var(--sas-space-2);
+}
+.dataTables_wrapper .row:last-child {
+  align-items: center;
+  padding: var(--sas-space-3) var(--sas-space-3) 0;
 }
 
 /* Flatpickr */
@@ -695,6 +858,211 @@ a:hover { color: var(--sas-primary-700); }
   border-radius: var(--sas-radius-sm);
   transition: width .4s var(--sas-ease);
 }
+
+/* --------------------------------------------------------------------------
+   Table toolbar — the recurring search + filter-selects + date-range row
+   above a data table. One shared pattern so every index page (audit,
+   appointments, patients, ...) can reuse it instead of hand-rolling layout.
+   -------------------------------------------------------------------------- */
+.sas-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+  padding: var(--sas-space-4) var(--sas-space-5);
+  border-bottom: 1px solid var(--sas-gray-100);
+}
+.sas-table-toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+.sas-table-toolbar .form-select,
+.sas-table-toolbar .sas-daterange-btn {
+  width: auto;
+  min-width: 9rem;
+}
+.sas-table-toolbar__search {
+  position: relative;
+  margin-left: auto;
+  width: 240px;
+  max-width: 100%;
+}
+.sas-table-toolbar__search i {
+  position: absolute;
+  left: .75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sas-gray-400);
+  font-size: .85rem;
+  pointer-events: none;
+}
+.sas-table-toolbar__search input {
+  padding-left: 2.1rem;
+}
+.sas-daterange-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .5rem .75rem;
+  border: 1px solid var(--sas-gray-200);
+  border-radius: var(--sas-radius-md);
+  background: #fff;
+  color: var(--sas-gray-700);
+  font-size: var(--sas-fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .15s var(--sas-ease), background .15s var(--sas-ease);
+}
+.sas-daterange-btn:hover { border-color: var(--sas-gray-300); background: var(--sas-gray-50); }
+.sas-daterange-btn i:first-child { color: var(--sas-gray-400); }
+@media (max-width: 767.98px) {
+  .sas-table-toolbar__search { margin-left: 0; width: 100%; order: 99; }
+}
+
+/* Hide the auto-injected DataTables length/filter row when a page supplies
+   its own toolbar (above) driving the same table instance — the info text
+   + pagination row (last) stays, since that's still the real page state. */
+.sas-table-toolbar ~ .table-responsive .dataTables_wrapper > .row:first-child {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Filter chips — removable "active filter" tokens above list/table toolbars
+   -------------------------------------------------------------------------- */
+.sas-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .3rem .6rem;
+  border-radius: var(--sas-radius-sm);
+  background: var(--sas-primary-50);
+  color: var(--sas-primary-700);
+  font-size: var(--sas-fs-xs);
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background .15s var(--sas-ease), border-color .15s var(--sas-ease);
+}
+.sas-filter-chip i { font-size: .85em; }
+.sas-filter-chip:hover {
+  background: var(--sas-primary-100);
+  color: var(--sas-primary-700);
+  border-color: var(--sas-primary-200);
+}
+
+/* --------------------------------------------------------------------------
+   Icon tile — square tinted icon container (distinct from the circular
+   .sas-avatar), used to lead a list row or card section with a semantic glyph
+   -------------------------------------------------------------------------- */
+.sas-icon-tile {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--sas-radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Stat strip — several KPIs as one card, divided by hairlines, instead of a
+   row of separate cards. Markup: components/stat-strip(-item).blade.php.
+   -------------------------------------------------------------------------- */
+.sas-stat-strip__row {
+  display: flex;
+  flex-wrap: wrap;
+}
+.sas-stat-strip__item {
+  flex: 1 1 0;
+  min-width: 160px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sas-space-3);
+  padding: var(--sas-space-5);
+  border-right: 1px solid var(--sas-gray-100);
+}
+.sas-stat-strip__item:last-child { border-right: 0; }
+.sas-stat-strip__value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--sas-gray-900);
+  line-height: 1.2;
+  margin-top: .15rem;
+}
+.sas-stat-strip__icon {
+    width: auto;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    font-size: 2rem;
+}
+@media (max-width: 767.98px) {
+  .sas-stat-strip__item {
+    flex: 1 1 50%;
+    border-right: 0;
+    border-bottom: 1px solid var(--sas-gray-100);
+  }
+  .sas-stat-strip__item:nth-child(odd) { border-right: 1px solid var(--sas-gray-100); }
+}
+
+/* --------------------------------------------------------------------------
+   Dense list row — a clickable row inside a card (e.g. dashboard "high risk"
+   list) that reads as an item, not a plain link
+   -------------------------------------------------------------------------- */
+.sas-row-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sas-space-3);
+  padding: var(--sas-space-2) var(--sas-space-2);
+  margin: 0 calc(var(--sas-space-2) * -1);
+  border-radius: var(--sas-radius-md);
+  transition: background-color .15s var(--sas-ease);
+}
+.sas-row-link:hover { background: var(--sas-gray-50); }
+
+/* --------------------------------------------------------------------------
+   Calendar event hover preview — quick patient/appointment glance without
+   leaving the calendar
+   -------------------------------------------------------------------------- */
+.sas-event-popover {
+  position: fixed;
+  z-index: 1060;
+  width: 260px;
+  background: #fff;
+  border: 1px solid var(--sas-gray-300);
+  border-radius: var(--sas-radius-lg);
+  box-shadow: var(--sas-shadow-md);
+  padding: var(--sas-space-4);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .12s var(--sas-ease), transform .12s var(--sas-ease);
+}
+.sas-event-popover.show { opacity: 1; transform: translateY(0); }
+.sas-event-popover__title { font-weight: 700; font-size: var(--sas-fs-base); color: var(--sas-gray-900); margin-bottom: .15rem; }
+.sas-event-popover__time { font-size: var(--sas-fs-xs); color: var(--sas-gray-500); margin-bottom: .6rem; display: flex; align-items: center; gap: .35rem; }
+.sas-event-popover__row { display: flex; align-items: center; justify-content: space-between; font-size: var(--sas-fs-xs); color: var(--sas-gray-600); margin-bottom: .3rem; }
+.sas-event-popover__row span:first-child { color: var(--sas-gray-500); }
+
+/* --------------------------------------------------------------------------
+   Calendar legend — restyled as compact chips instead of bare dot + text
+   -------------------------------------------------------------------------- */
+.sas-cal-legend__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .25rem .55rem;
+  border-radius: var(--sas-radius-sm);
+  background: var(--sas-gray-50);
+  font-size: var(--sas-fs-xs);
+  font-weight: 600;
+  color: var(--sas-gray-700);
+}
+.sas-cal-legend__chip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
 
 /* --------------------------------------------------------------------------
    Confirm modal (shared, replaces native confirm())

@@ -3,7 +3,7 @@
   @if($title || isset($toolbar))
     <div class="card-header sas-card-toolbar">
       <div>
-        @if($title)<h6 class="mb-0 fw-bold">{{ $title }}</h6>@endif
+        @if($title)<h6 class="mb-0 fw-semibold" style="font-size:1.0625rem;letter-spacing:-.01em">{{ $title }}</h6>@endif
         @if($subtitle)<small class="text-muted">{{ $subtitle }}</small>@endif
       </div>
       @isset($toolbar)

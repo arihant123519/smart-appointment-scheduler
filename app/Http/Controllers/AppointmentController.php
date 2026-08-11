@@ -53,7 +53,7 @@ class AppointmentController extends Controller
         }
 
         $appointments = $query->get();
-        $providers = Provider::with('user')->get();
+        $providers = Provider::with('user')->forCurrentClinic()->get();
         $statuses = Appointment::STATUSES;
 
         return view('appointments.index', compact('appointments', 'providers', 'statuses'));
@@ -126,6 +126,8 @@ class AppointmentController extends Controller
 
     public function show(Appointment $appointment): View
     {
+        $this->authorizeAppointmentAccess($appointment);
+
         $appointment->load(['patient', 'provider.user', 'service', 'resource', 'clinic', 'reminders', 'payment', 'intakeForm', 'documents']);
 
         return view('appointments.show', compact('appointment'));
@@ -134,11 +136,15 @@ class AppointmentController extends Controller
     /** Personalized reschedule suggestions (AJAX, PRD "smarter rescheduling suggestions"). */
     public function rescheduleSuggestions(Appointment $appointment, RescheduleSuggestionService $suggestions): JsonResponse
     {
+        $this->authorizeAppointmentAccess($appointment);
+
         return response()->json(['slots' => $suggestions->suggestFor($appointment)]);
     }
 
     public function edit(Appointment $appointment): View
     {
+        $this->authorizeAppointmentAccess($appointment);
+
         return view('appointments.edit', array_merge(
             $this->formData(),
             ['appointment' => $appointment]
@@ -147,6 +153,8 @@ class AppointmentController extends Controller
 
     public function update(Request $request, Appointment $appointment): RedirectResponse
     {
+        $this->authorizeAppointmentAccess($appointment);
+
         $data = $this->validateAppointment($request, $appointment);
         $before = $appointment->toArray();
 
@@ -190,6 +198,8 @@ class AppointmentController extends Controller
 
     public function destroy(Appointment $appointment): RedirectResponse
     {
+        $this->authorizeAppointmentAccess($appointment);
+
         AuditLog::record('deleted', $appointment, $appointment->toArray());
         $appointment->delete();
 
@@ -198,6 +208,8 @@ class AppointmentController extends Controller
 
     public function updateStatus(Request $request, Appointment $appointment): RedirectResponse
     {
+        $this->authorizeAppointmentAccess($appointment);
+
         $allowedTargets = Appointment::TRANSITIONS[$appointment->status] ?? [];
 
         if (empty($allowedTargets)) {
@@ -256,6 +268,8 @@ class AppointmentController extends Controller
     /** Edit the cancellation/no-show note on a locked appointment, without touching its status. */
     public function updateReason(Request $request, Appointment $appointment): RedirectResponse
     {
+        $this->authorizeAppointmentAccess($appointment);
+
         if (! in_array($appointment->status, [Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW], true)) {
             return back()->with('error', 'A reason note can only be edited on a cancelled or no-show appointment.');
         }
@@ -288,10 +302,31 @@ class AppointmentController extends Controller
         return response()->json(['slots' => $slots]);
     }
 
+    /**
+     * Record-level guard: route-model-binding alone doesn't scope by clinic or
+     * provider ownership, so every action reachable by appointment id needs this.
+     * system_admin bypasses; everyone else must be in the same clinic; a plain
+     * provider (no admin/front-desk role) is further limited to their own patients.
+     */
+    private function authorizeAppointmentAccess(Appointment $appointment): void
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('system_admin')) {
+            return;
+        }
+
+        abort_unless($appointment->clinic_id === $user->clinic_id, 404);
+
+        if ($user->hasRole('provider') && ! $user->hasAnyRole(['clinic_admin', 'front_desk', 'billing'])) {
+            abort_unless($user->provider && $appointment->provider_id === $user->provider->id, 403);
+        }
+    }
+
     private function formData(): array
     {
         return [
-            'patients' => User::role('patient')->orderBy('name')->get(),
+            'patients' => User::role('patient')->forCurrentClinic()->orderBy('name')->get(),
             'providers' => Provider::with('user')->forCurrentClinic()->where('is_active', true)->get(),
             'services' => Service::forCurrentClinic()->where('is_active', true)->orderBy('name')->get(),
             'resources' => Resource::where('is_active', true)->orderBy('name')->get(),
@@ -301,7 +336,11 @@ class AppointmentController extends Controller
     private function validateAppointment(Request $request, ?Appointment $appointment = null): array
     {
         return $request->validate([
-            'patient_id' => ['required', 'exists:users,id'],
+            'patient_id' => ['required', 'exists:users,id', function ($attribute, $value, $fail) {
+                if (! User::find($value)?->hasRole('patient')) {
+                    $fail('The selected patient is not a valid patient account.');
+                }
+            }],
             'provider_id' => ['required', 'exists:providers,id'],
             'service_id' => ['required', 'exists:services,id'],
             'resource_id' => ['nullable', 'exists:resources,id'],

@@ -30,57 +30,68 @@ class DashboardController extends Controller
 
         $today = today();
 
+        // Providers (unless also front desk/admin) get a dashboard scoped to
+        // their own appointments/patients, not the whole clinic's — reused
+        // for every stat block below, not just the "missed" section.
+        $onlyOwnProvider = $user->hasRole('provider')
+            && ! $user->hasAnyRole(['clinic_admin', 'system_admin', 'front_desk'])
+            && $user->provider;
+        $providerId = $onlyOwnProvider ? $user->provider->id : null;
+        $scopeToOwnProvider = fn ($query) => $query->when($onlyOwnProvider, fn ($q) => $q->where('provider_id', $providerId));
+
         $stats = [
-            'today' => Appointment::forDay($today)->active()->count(),
-            'upcoming' => Appointment::upcoming()->count(),
-            'patients' => User::role('patient')->count(),
+            'today' => $scopeToOwnProvider(Appointment::forDay($today)->active())->count(),
+            'upcoming' => $scopeToOwnProvider(Appointment::upcoming())->count(),
+            'patients' => $onlyOwnProvider
+                ? Appointment::where('provider_id', $providerId)->distinct()->count('patient_id')
+                : User::role('patient')->count(),
             'providers' => Provider::where('is_active', true)->count(),
         ];
 
         // No-show rate (last 30 days)
         $window = now()->subDays(30);
-        $finished = Appointment::where('start_at', '>=', $window)
-            ->whereIn('status', [Appointment::STATUS_COMPLETED, Appointment::STATUS_NO_SHOW])
+        $finished = $scopeToOwnProvider(Appointment::where('start_at', '>=', $window)
+            ->whereIn('status', [Appointment::STATUS_COMPLETED, Appointment::STATUS_NO_SHOW]))
             ->count();
-        $noShows = Appointment::where('start_at', '>=', $window)
-            ->where('status', Appointment::STATUS_NO_SHOW)->count();
+        $noShows = $scopeToOwnProvider(Appointment::where('start_at', '>=', $window)
+            ->where('status', Appointment::STATUS_NO_SHOW))->count();
         $noShowRate = $finished > 0 ? round($noShows / $finished * 100, 1) : 0;
 
         // Status breakdown
-        $statusBreakdown = Appointment::select('status', DB::raw('count(*) as total'))
+        $statusBreakdown = $scopeToOwnProvider(Appointment::select('status', DB::raw('count(*) as total')))
             ->groupBy('status')->pluck('total', 'status')->toArray();
 
         // Channel mix (last 30 days) — where bookings are actually coming from.
-        $channelMix = Appointment::where('start_at', '>=', $window)
-            ->select('channel', DB::raw('count(*) as total'))
+        $channelMix = $scopeToOwnProvider(Appointment::where('start_at', '>=', $window)
+            ->select('channel', DB::raw('count(*) as total')))
             ->groupBy('channel')->pluck('total', 'channel')->toArray();
 
-        // Fill rate (last 30 days): booked minutes vs. the clinic's actual
-        // available capacity for that period (from provider working hours,
-        // minus any full-day exceptions/holidays).
-        $fillRate = $this->fillRateStats(today()->subDays(29), today());
+        // Fill rate (last 30 days): booked minutes vs. actual available capacity
+        // for that period (from provider working hours, minus full-day
+        // exceptions/holidays) — the whole clinic's, or just this provider's.
+        $fillRate = $this->fillRateStats(today()->subDays(29), today(), $providerId);
 
         // Completion rate (last 30 days): completed vs. everything that reached
         // a terminal outcome (completed + no-show + cancelled).
-        $completed30 = Appointment::where('start_at', '>=', $window)
-            ->where('status', Appointment::STATUS_COMPLETED)->count();
-        $terminal30 = Appointment::where('start_at', '>=', $window)
+        $completed30 = $scopeToOwnProvider(Appointment::where('start_at', '>=', $window)
+            ->where('status', Appointment::STATUS_COMPLETED))->count();
+        $terminal30 = $scopeToOwnProvider(Appointment::where('start_at', '>=', $window)
             ->whereIn('status', [
                 Appointment::STATUS_COMPLETED,
                 Appointment::STATUS_NO_SHOW,
                 Appointment::STATUS_CANCELLED,
-            ])->count();
+            ]))->count();
         $completionRate = $terminal30 > 0 ? round($completed30 / $terminal30 * 100, 1) : 0;
 
         // Appointments per day (last 14 days) — total booked vs. completed so the
         // chart tells a story rather than showing a single flat line.
-        $rows = Appointment::where('start_at', '>=', now()->subDays(13)->startOfDay())
+        $rows = $scopeToOwnProvider(Appointment::where('start_at', '>=', now()->subDays(13)->startOfDay())
             ->select(
                 DB::raw('DATE(start_at) as d'),
                 DB::raw('count(*) as total'),
                 DB::raw("sum(case when status = '".Appointment::STATUS_COMPLETED."' then 1 else 0 end) as completed"),
                 DB::raw("sum(case when status = '".Appointment::STATUS_NO_SHOW."' then 1 else 0 end) as no_show")
-            )
+            ))
             ->groupBy('d')->get()->keyBy('d');
 
         $chartLabels = [];
@@ -101,8 +112,7 @@ class DashboardController extends Controller
         $hourExpr = DB::connection()->getDriverName() === 'sqlite'
             ? "CAST(strftime('%H', start_at) AS INTEGER)"
             : 'HOUR(start_at)';
-        $hourRows = Appointment::where('start_at', '>=', $window)
-            ->active()
+        $hourRows = $scopeToOwnProvider(Appointment::where('start_at', '>=', $window)->active())
             ->select(DB::raw("$hourExpr as h"), DB::raw('count(*) as total'))
             ->groupBy('h')->pluck('total', 'h')->toArray();
 
@@ -114,29 +124,22 @@ class DashboardController extends Controller
         }
 
         // Top services (last 30 days) for a quick mix breakdown.
-        $topServices = Appointment::where('appointments.start_at', '>=', $window)
-            ->join('services', 'services.id', '=', 'appointments.service_id')
+        $topServices = $scopeToOwnProvider(Appointment::where('appointments.start_at', '>=', $window)
+            ->join('services', 'services.id', '=', 'appointments.service_id'))
             ->select('services.name', DB::raw('count(*) as total'))
             ->groupBy('services.name')->orderByDesc('total')->limit(5)
             ->pluck('total', 'services.name')->toArray();
 
-        $todaysAppointments = Appointment::with(['patient', 'provider.user', 'service'])
-            ->forDay($today)->active()->orderBy('start_at')->get();
+        $todaysAppointments = $scopeToOwnProvider(Appointment::with(['patient', 'provider.user', 'service'])
+            ->forDay($today)->active())->orderBy('start_at')->get();
 
-        $highRisk = Appointment::with(['patient', 'provider.user'])
-            ->upcoming()->where('no_show_score', '>=', 70)
+        $highRisk = $scopeToOwnProvider(Appointment::with(['patient', 'provider.user'])
+            ->upcoming()->where('no_show_score', '>=', 70))
             ->orderByDesc('no_show_score')->limit(5)->get();
 
         // Missed appointments (past + not completed). Providers see only their
         // own; front desk / clinic admin / system admin see the whole clinic.
-        $onlyOwnProvider = $user->hasRole('provider')
-            && ! $user->hasAnyRole(['clinic_admin', 'system_admin', 'front_desk'])
-            && $user->provider;
-
-        $missedQuery = Appointment::missed()->with(['patient', 'provider.user', 'service']);
-        if ($onlyOwnProvider) {
-            $missedQuery->where('provider_id', $user->provider->id);
-        }
+        $missedQuery = $scopeToOwnProvider(Appointment::missed()->with(['patient', 'provider.user', 'service']));
         $missedCount = (clone $missedQuery)->count();
         $missedAppointments = (clone $missedQuery)->orderByDesc('start_at')->limit(8)->get();
 
@@ -162,9 +165,11 @@ class DashboardController extends Controller
      *
      * @return array{rate: float, booked_minutes: int, available_minutes: int}
      */
-    public function fillRateStats(Carbon $start, Carbon $end): array
+    public function fillRateStats(Carbon $start, Carbon $end, ?int $providerId = null): array
     {
-        $providers = Provider::where('is_active', true)->with('availabilities')->get();
+        $providers = Provider::where('is_active', true)
+            ->when($providerId, fn ($q) => $q->where('id', $providerId))
+            ->with('availabilities')->get();
 
         if ($providers->isEmpty()) {
             return ['rate' => 0.0, 'booked_minutes' => 0, 'available_minutes' => 0];
@@ -204,6 +209,7 @@ class DashboardController extends Controller
 
         $bookedMinutes = (int) Appointment::whereBetween('start_at', [$start, $end->copy()->endOfDay()])
             ->whereNotIn('status', [Appointment::STATUS_CANCELLED])
+            ->when($providerId, fn ($q) => $q->where('provider_id', $providerId))
             ->get(['start_at', 'end_at'])
             ->sum(fn ($a) => $a->start_at->diffInMinutes($a->end_at));
 

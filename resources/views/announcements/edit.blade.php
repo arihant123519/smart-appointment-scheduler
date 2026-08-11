@@ -60,10 +60,7 @@
 
           <x-form-field name="title" label="Title" :value="old('title', $announcement->title)" :required="true" />
 
-          <div class="mb-3 mt-3"><label class="form-label">Message</label>
-            <textarea name="body" class="form-control @error('body') is-invalid @enderror" rows="4" required>{{ old('body', $announcement->body) }}</textarea>
-            @error('body')<div class="invalid-feedback">{{ $message }}</div>@enderror
-          </div>
+          <div class="mb-3 mt-3"><x-outline-field name="body" label="Message" textarea rows="4" required :value="old('body', $announcement->body)" /></div>
           @php $f = old('filters', $announcement->filters ?? []); @endphp
           <input type="hidden" name="audience" value="custom">
           <div class="mb-3"><label class="form-label">Audience</label>
@@ -98,8 +95,7 @@
                 <x-form-field name="wa_template_id" label="Gupshup Template ID" :value="old('wa_template_id', $announcement->wa_template_id)" class="form-control-sm" placeholder="e.g. 3515c95f-f515-45c1-8b0c-04141e8d858d" />
               </div>
               <div class="col-md-5">
-                <label class="form-label small">Namespace <span class="text-muted">(optional)</span></label>
-                <input type="text" name="wa_namespace" class="form-control form-control-sm" value="{{ old('wa_namespace', $announcement->wa_namespace) }}" placeholder="optional">
+                <x-outline-field name="wa_namespace" label="Namespace (optional)" value="{{ old('wa_namespace', $announcement->wa_namespace) }}" placeholder="optional" />
               </div>
               <div class="col-12">
                 <label class="form-label small mb-1">Variables — map each <code>@{{n}}</code> to a field, in order</label>
@@ -180,26 +176,21 @@
                 @endif
                 <div class="row g-2 mb-3">
                   <div class="col-6">
-                    <label class="form-label">Risk min %</label>
-                    <input type="number" name="filters[risk_min]" class="form-control form-control-sm sas-audience-filter" data-key="risk_min" min="0" max="100" value="{{ $f['risk_min'] ?? '' }}">
+                    <x-outline-field name="filters[risk_min]" id="filterRiskMin" type="number" label="Risk min %" class="sas-audience-filter" data-key="risk_min" min="0" max="100" value="{{ $f['risk_min'] ?? '' }}" />
                   </div>
                   <div class="col-6">
-                    <label class="form-label">Risk max %</label>
-                    <input type="number" name="filters[risk_max]" class="form-control form-control-sm sas-audience-filter" data-key="risk_max" min="0" max="100" value="{{ $f['risk_max'] ?? '' }}">
+                    <x-outline-field name="filters[risk_max]" id="filterRiskMax" type="number" label="Risk max %" class="sas-audience-filter" data-key="risk_max" min="0" max="100" value="{{ $f['risk_max'] ?? '' }}" />
                   </div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">Exact appointment date</label>
-                  <input type="date" name="filters[date]" class="form-control form-control-sm sas-audience-filter" data-key="date" value="{{ $f['date'] ?? '' }}">
+                  <x-outline-field name="filters[date]" id="filterDate" type="date" label="Exact appointment date" class="sas-audience-filter" data-key="date" value="{{ $f['date'] ?? '' }}" />
                 </div>
                 <div class="row g-2">
                   <div class="col-6">
-                    <label class="form-label">Date from</label>
-                    <input type="date" name="filters[date_from]" class="form-control form-control-sm sas-audience-filter" data-key="date_from" value="{{ $f['date_from'] ?? '' }}">
+                    <x-outline-field name="filters[date_from]" id="filterDateFrom" type="date" label="Date from" class="sas-audience-filter" data-key="date_from" value="{{ $f['date_from'] ?? '' }}" />
                   </div>
                   <div class="col-6">
-                    <label class="form-label">Date to</label>
-                    <input type="date" name="filters[date_to]" class="form-control form-control-sm sas-audience-filter" data-key="date_to" value="{{ $f['date_to'] ?? '' }}">
+                    <x-outline-field name="filters[date_to]" id="filterDateTo" type="date" label="Date to" class="sas-audience-filter" data-key="date_to" value="{{ $f['date_to'] ?? '' }}" />
                   </div>
                 </div>
               </div>

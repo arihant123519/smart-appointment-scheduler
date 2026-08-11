@@ -12,13 +12,17 @@ use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClinicController;
+use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\IntakeFormController;
 use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientHistoryController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\PrescriptionSettingsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ReminderActionController;
@@ -91,6 +95,7 @@ Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::put('profile/provider', [ProfileController::class, 'updateProviderDetails'])->name('profile.provider.update');
     Route::post('profile/tokens', [ProfileController::class, 'createToken'])->name('profile.tokens.create');
     Route::delete('profile/tokens/{tokenId}', [ProfileController::class, 'deleteToken'])->name('profile.tokens.delete');
 
@@ -121,6 +126,13 @@ Route::middleware('auth')->group(function () {
     Route::get('appointments/{appointment}/intake', [IntakeFormController::class, 'edit'])->name('intake.edit');
     Route::put('appointments/{appointment}/intake', [IntakeFormController::class, 'update'])->name('intake.update');
     Route::patch('appointments/{appointment}/check-in', [IntakeFormController::class, 'checkIn'])->name('intake.checkin');
+
+    // Consultation encounter form + prescription (doctor or staff with `view consultations`;
+    // ownership/permission enforced in the controller, matching the intake-form pattern above)
+    Route::get('appointments/{appointment}/consultation', [ConsultationController::class, 'edit'])->name('consultations.edit');
+    Route::put('appointments/{appointment}/consultation', [ConsultationController::class, 'update'])->name('consultations.update');
+    Route::patch('appointments/{appointment}/consultation/finalize', [ConsultationController::class, 'finalize'])->name('consultations.finalize');
+    Route::get('appointments/{appointment}/prescription/pdf', [PrescriptionController::class, 'pdf'])->name('prescriptions.pdf');
 
     // Reviews (patient leaves feedback)
     Route::get('appointments/{appointment}/review', [ReviewController::class, 'create'])->name('reviews.create');
@@ -174,10 +186,15 @@ Route::middleware('auth')->group(function () {
     // Walk-in queue
     Route::middleware('can:manage walk_in_queue')->group(function () {
         Route::get('walkins', [\App\Http\Controllers\WalkInQueueController::class, 'index'])->name('walkins.index');
+        Route::get('walkins/partial', [\App\Http\Controllers\WalkInQueueController::class, 'partial'])->name('walkins.partial');
         Route::post('walkins', [\App\Http\Controllers\WalkInQueueController::class, 'store'])->name('walkins.store');
         Route::patch('walkins/{walkin}/status', [\App\Http\Controllers\WalkInQueueController::class, 'updateStatus'])->name('walkins.status');
         Route::delete('walkins/{walkin}', [\App\Http\Controllers\WalkInQueueController::class, 'destroy'])->name('walkins.destroy');
     });
+
+    // Doctor-facing patient history (provider's own treated patients, or system admin)
+    Route::get('my-patients', [PatientHistoryController::class, 'index'])->name('patient-history.index');
+    Route::get('my-patients/{patient}', [PatientHistoryController::class, 'show'])->name('patient-history.show');
 
     // Patients
     Route::middleware('can:manage patients')->group(function () {
@@ -275,5 +292,8 @@ Route::middleware('auth')->group(function () {
         Route::get('settings/integrations', [IntegrationSettingsController::class, 'edit'])->name('settings.integrations.edit');
         Route::put('settings/integrations', [IntegrationSettingsController::class, 'update'])->name('settings.integrations.update');
         Route::post('settings/integrations/test', [IntegrationSettingsController::class, 'test'])->name('settings.integrations.test');
+
+        Route::get('settings/prescription', [PrescriptionSettingsController::class, 'edit'])->name('settings.prescription.edit');
+        Route::put('settings/prescription', [PrescriptionSettingsController::class, 'update'])->name('settings.prescription.update');
     });
 });

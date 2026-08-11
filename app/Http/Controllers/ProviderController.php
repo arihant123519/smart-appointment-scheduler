@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ProviderController extends Controller
@@ -40,11 +41,14 @@ class ProviderController extends Controller
             'services.*' => ['exists:services,id'],
         ]);
 
+        $tempPassword = Str::password(12, symbols: false);
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
-            'password' => Hash::make('password'),
+            'password' => Hash::make($tempPassword),
+            'must_change_password' => true,
             'clinic_id' => auth()->user()->clinic_id,
             'is_active' => true,
         ]);
@@ -60,11 +64,13 @@ class ProviderController extends Controller
         ]);
         $provider->services()->sync($data['services'] ?? []);
 
-        return redirect()->route('providers.show', $provider)->with('success', 'Provider created.');
+        return redirect()->route('providers.show', $provider)
+            ->with('success', 'Provider created. Temporary password (share with them — shown only once): '.$tempPassword);
     }
 
     public function show(Provider $provider): View
     {
+        $this->authorizeClinic($provider);
         $provider->load(['user', 'services', 'availabilities']);
 
         return view('providers.show', compact('provider'));
@@ -72,6 +78,7 @@ class ProviderController extends Controller
 
     public function edit(Provider $provider): View
     {
+        $this->authorizeClinic($provider);
         $provider->load(['user', 'services']);
         $services = Service::where('is_active', true)->orderBy('name')->get();
 
@@ -80,6 +87,8 @@ class ProviderController extends Controller
 
     public function update(Request $request, Provider $provider): RedirectResponse
     {
+        $this->authorizeClinic($provider);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email,'.$provider->user_id],
@@ -113,8 +122,19 @@ class ProviderController extends Controller
 
     public function destroy(Provider $provider): RedirectResponse
     {
+        $this->authorizeClinic($provider);
         $provider->delete();
 
         return redirect()->route('providers.index')->with('success', 'Provider removed.');
+    }
+
+    /** Route-model-binding by id doesn't scope by clinic — enforce it explicitly here. */
+    private function authorizeClinic(Provider $provider): void
+    {
+        $user = auth()->user();
+        if ($user->hasRole('system_admin')) {
+            return;
+        }
+        abort_unless($provider->clinic_id === $user->clinic_id, 404);
     }
 }

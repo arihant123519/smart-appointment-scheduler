@@ -19,7 +19,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles, ScopedToClinic, SoftDeletes;
 
     protected $fillable = [
-        'clinic_id', 'name', 'email', 'phone', 'password', 'locale', 'preferred_channel',
+        'clinic_id', 'name', 'email', 'phone', 'password', 'must_change_password', 'locale', 'preferred_channel',
         'date_of_birth', 'gender', 'address', 'avatar', 'mfa_secret',
         'is_active', 'last_login_at',
     ];
@@ -34,6 +34,7 @@ class User extends Authenticatable
             'date_of_birth' => 'date',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 
@@ -65,6 +66,16 @@ class User extends Authenticatable
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class, 'patient_id');
+    }
+
+    public function consultations(): HasMany
+    {
+        return $this->hasMany(Consultation::class, 'patient_id');
+    }
+
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class, 'patient_id');
     }
 
     public function getAvatarUrlAttribute(): string

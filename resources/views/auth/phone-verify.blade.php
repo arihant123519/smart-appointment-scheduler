@@ -11,10 +11,8 @@
   <form method="POST" action="{{ route('login.phone.verify.submit') }}">
     @csrf
     <div class="mb-4">
-      <label class="form-label" for="code">Verification code</label>
-      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" name="code" class="form-control text-center @error('code') is-invalid @enderror" id="code"
-             placeholder="000000" autocomplete="one-time-code" required autofocus>
-      @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+      <x-outline-field name="code" label="Verification code" class="text-center" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+        placeholder="000000" autocomplete="one-time-code" required autofocus />
     </div>
     <div class="mb-3">
       <button type="submit" class="btn btn-primary w-100">Verify &amp; log in</button>

@@ -219,20 +219,17 @@
                     </select>
                   </div>
                   <div class="col-md-7">
-                    <label class="form-label small">Section name</label>
-                    <input type="text" name="sections[{{ $i }}][label]" class="form-control wa-label-input" value="{{ $section['label'] }}" placeholder="e.g. Appointment reminder">
+                    <x-outline-field name="sections[{{ $i }}][label]" id="secLabel{{ $i }}" label="Section name" class="wa-label-input" value="{{ $section['label'] }}" placeholder="e.g. Appointment reminder" />
                   </div>
                   <div class="col-md-7">
-                    <label class="form-label small">Template ID</label>
-                    <input type="text" name="sections[{{ $i }}][template_id]" class="form-control wa-template-input" value="{{ $section['template_id'] }}" placeholder="e.g. 3515c95f-f515-45c1-8b0c-04141e8d858d">
+                    <x-outline-field name="sections[{{ $i }}][template_id]" id="secTemplateId{{ $i }}" label="Template ID" class="wa-template-input" value="{{ $section['template_id'] }}" placeholder="e.g. 3515c95f-f515-45c1-8b0c-04141e8d858d" />
                   </div>
                   <div class="col-md-5">
-                    <label class="form-label small">Namespace <span class="text-muted">(optional)</span></label>
-                    <input type="text" name="sections[{{ $i }}][namespace]" class="form-control" value="{{ $section['namespace'] }}" placeholder="optional">
+                    <x-outline-field name="sections[{{ $i }}][namespace]" id="secNamespace{{ $i }}" label="Namespace (optional)" value="{{ $section['namespace'] }}" placeholder="optional" />
                   </div>
                   <div class="col-12">
-                    <label class="form-label small">Template text <span class="text-muted">(for your reference — must match the approved template)</span></label>
-                    <textarea name="sections[{{ $i }}][body]" rows="2" class="form-control" placeholder="Hi @{{1}}, your appointment at @{{2}} with Dr. @{{3}} is booked for @{{4}} at @{{5}}.">{{ $section['body'] }}</textarea>
+                    <x-outline-field name="sections[{{ $i }}][body]" id="secBody{{ $i }}" label="Template text (for reference — must match the approved template)" textarea rows="2"
+                      placeholder="Hi @{{1}}, your appointment at @{{2}} with Dr. @{{3}} is booked for @{{4}} at @{{5}}." value="{{ $section['body'] }}" />
                   </div>
                   <div class="col-12">
                     <label class="form-label small mb-1">Variables — map each <code>@{{n}}</code> to a field, in order</label>
@@ -289,20 +286,32 @@
                 </select>
               </div>
               <div class="col-md-7">
-                <label class="form-label small">Section name</label>
-                <input type="text" name="sections[__I__][label]" class="form-control wa-label-input" placeholder="e.g. Appointment reminder">
+                <div class="sas-outline-field">
+                  <input type="text" name="sections[__I__][label]" id="secLabel__I__" class="sas-outline-field__input wa-label-input" placeholder=" ">
+                  <fieldset class="sas-outline-field__fieldset" aria-hidden="true"><legend><span>Section name</span></legend></fieldset>
+                  <label for="secLabel__I__" class="sas-outline-field__label">Section name:</label>
+                </div>
               </div>
               <div class="col-md-7">
-                <label class="form-label small">Template ID</label>
-                <input type="text" name="sections[__I__][template_id]" class="form-control wa-template-input" placeholder="e.g. 3515c95f-f515-45c1-8b0c-04141e8d858d">
+                <div class="sas-outline-field">
+                  <input type="text" name="sections[__I__][template_id]" id="secTemplateId__I__" class="sas-outline-field__input wa-template-input" placeholder=" ">
+                  <fieldset class="sas-outline-field__fieldset" aria-hidden="true"><legend><span>Template ID</span></legend></fieldset>
+                  <label for="secTemplateId__I__" class="sas-outline-field__label">Template ID:</label>
+                </div>
               </div>
               <div class="col-md-5">
-                <label class="form-label small">Namespace <span class="text-muted">(optional)</span></label>
-                <input type="text" name="sections[__I__][namespace]" class="form-control" placeholder="optional">
+                <div class="sas-outline-field">
+                  <input type="text" name="sections[__I__][namespace]" id="secNamespace__I__" class="sas-outline-field__input" placeholder=" ">
+                  <fieldset class="sas-outline-field__fieldset" aria-hidden="true"><legend><span>Namespace (optional)</span></legend></fieldset>
+                  <label for="secNamespace__I__" class="sas-outline-field__label">Namespace (optional):</label>
+                </div>
               </div>
               <div class="col-12">
-                <label class="form-label small">Template text <span class="text-muted">(for your reference)</span></label>
-                <textarea name="sections[__I__][body]" rows="2" class="form-control" placeholder="Hi @{{1}}, your appointment at @{{2}} with Dr. @{{3}} is booked for @{{4}} at @{{5}}."></textarea>
+                <div class="sas-outline-field">
+                  <textarea name="sections[__I__][body]" id="secBody__I__" rows="2" class="sas-outline-field__input" placeholder=" "></textarea>
+                  <fieldset class="sas-outline-field__fieldset" aria-hidden="true"><legend><span>Template text (for reference)</span></legend></fieldset>
+                  <label for="secBody__I__" class="sas-outline-field__label">Template text (for reference):</label>
+                </div>
               </div>
               <div class="col-12">
                 <label class="form-label small mb-1">Variables — map each <code>@{{n}}</code> to a field, in order</label>

@@ -1,7 +1,7 @@
 <div class="row g-3">
   <div class="col-12"><h6 class="mb-2">Basic info</h6></div>
   <div class="col-md-8">
-    <x-form-field name="name" label="Name" :required="true" :value="old('name', $clinic->name ?? '')" />
+    <x-outline-field name="name" label="Name" :required="true" :value="old('name', $clinic->name ?? '')" />
   </div>
   <div class="col-md-4">
     <x-form-field name="timezone" label="Timezone" :value="old('timezone', $clinic->timezone ?? 'UTC')" />
@@ -46,6 +46,16 @@
     <input type="color" name="primary_color" class="form-control form-control-color @error('primary_color') is-invalid @enderror" value="{{ old('primary_color', $clinic->primary_color ?? '#2563eb') }}">
     @error('primary_color')<div class="invalid-feedback">{{ $message }}</div>@enderror
     <div class="form-text">Best-effort accent color for buttons/links on this clinic's pages.</div>
+  </div>
+  <div class="col-md-6">
+    <x-form-field name="prescription_header_note" label="Prescription header tagline (optional)"
+      help="Shown under the clinic name on printed prescriptions, e.g. a specialty tagline."
+      :value="old('prescription_header_note', $clinic->prescription_header_note ?? '')" />
+  </div>
+  <div class="col-md-6">
+    <x-outline-field name="prescription_footer_text" label="Prescription footer text" textarea rows="2"
+      :value="old('prescription_footer_text', $clinic->prescription_footer_text ?? '')"
+      help="Printed at the bottom of every prescription (disclaimer, contact info, etc.)." />
   </div>
 
   <div class="col-12"><hr class="my-1"></div>

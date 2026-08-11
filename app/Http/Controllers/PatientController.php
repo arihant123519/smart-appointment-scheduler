@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PatientController extends Controller
@@ -42,19 +43,24 @@ class PatientController extends Controller
             'address' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $tempPassword = Str::password(12, symbols: false);
+
         $patient = User::create(array_merge($data, [
-            'password' => Hash::make('password'),
+            'password' => Hash::make($tempPassword),
+            'must_change_password' => true,
             'clinic_id' => auth()->user()->clinic_id,
             'is_active' => true,
         ]));
         $patient->assignRole('patient');
 
-        return redirect()->route('patients.show', $patient)->with('success', 'Patient created.');
+        return redirect()->route('patients.show', $patient)
+            ->with('success', 'Patient created. Temporary password (share with the patient — shown only once): '.$tempPassword);
     }
 
     public function show(User $patient): View
     {
         abort_unless($patient->hasRole('patient'), 404);
+        $this->authorizeClinic($patient);
         $patient->load([
             'appointments' => fn ($q) => $q->with(['provider.user', 'service'])->orderByDesc('start_at'),
             'payments' => fn ($q) => $q->orderByDesc('created_at'),
@@ -67,6 +73,7 @@ class PatientController extends Controller
     public function edit(User $patient): View
     {
         abort_unless($patient->hasRole('patient'), 404);
+        $this->authorizeClinic($patient);
 
         return view('patients.edit', compact('patient'));
     }
@@ -74,6 +81,7 @@ class PatientController extends Controller
     public function update(Request $request, User $patient): RedirectResponse
     {
         abort_unless($patient->hasRole('patient'), 404);
+        $this->authorizeClinic($patient);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -94,8 +102,19 @@ class PatientController extends Controller
     public function destroy(User $patient): RedirectResponse
     {
         abort_unless($patient->hasRole('patient'), 404);
+        $this->authorizeClinic($patient);
         $patient->delete();
 
         return redirect()->route('patients.index')->with('success', 'Patient removed.');
+    }
+
+    /** Route-model-binding by id doesn't scope by clinic — enforce it explicitly here. */
+    private function authorizeClinic(User $patient): void
+    {
+        $user = auth()->user();
+        if ($user->hasRole('system_admin')) {
+            return;
+        }
+        abort_unless($patient->clinic_id === $user->clinic_id, 404);
     }
 }

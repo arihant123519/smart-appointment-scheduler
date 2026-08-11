@@ -107,6 +107,8 @@ class ClinicController extends Controller
             'abdm_health_id' => ['nullable', 'string', 'max:64'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'primary_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'prescription_header_note' => ['nullable', 'string', 'max:500'],
+            'prescription_footer_text' => ['nullable', 'string', 'max:1000'],
         ]);
         $data['is_active'] = $request->boolean('is_active', true);
         $data['timezone'] ??= 'UTC';
