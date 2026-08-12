@@ -11,33 +11,45 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
   <link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/sas-ui.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/sas-ui.css') }}?v={{ filemtime(public_path('assets/css/sas-ui.css')) }}">
   <style>
-    body { background: var(--sas-gray-100); }
+    body { background: var(--sas-gray-25, #fff); }
     .sas-auth-shell { min-height: 100vh; display: flex; }
-    .sas-auth-card .card { box-shadow: var(--sas-shadow-lg); border-radius: var(--sas-radius-xl); }
+
+    /* Branding panel — light, airy, brand-accent-on-white rather than a
+       solid brand-color fill, closer to how the app's own canvas reads. */
     .sas-auth-brand {
-      flex: 0 0 44%;
-      max-width: 560px;
-      color: #fff;
+      flex: 0 0 46%;
+      max-width: 620px;
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 3rem;
-      background: var(--sas-primary-600); /* Ichelon: flat, no gradients/glassmorphism as decoration */
+      justify-content: center;
+      gap: 2.5rem;
+      padding: 3.5rem 3rem;
+      background:
+        radial-gradient(ellipse 60% 50% at 100% 0%, var(--sas-primary-100), transparent 60%),
+        var(--sas-gray-25, #fbfcfe);
+      border-right: 1px solid var(--sas-gray-100);
     }
     .sas-auth-brand > * { position: relative; z-index: 1; }
-    .sas-auth-brand__logo { display: flex; align-items: center; gap: .65rem; font-weight: 700; font-size: 1.15rem; }
+    .sas-auth-brand__logo { display: flex; align-items: center; gap: .65rem; font-weight: 700; font-size: 1.15rem; color: var(--sas-gray-900); }
     .sas-auth-brand__logo img { height: 30px; }
-    .sas-auth-feature { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: 1.1rem; }
+    .sas-auth-brand__headline { font-size: 2.5rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; color: var(--sas-gray-900); margin-bottom: 2rem; }
+    .sas-auth-brand__headline em { font-style: normal; color: var(--sas-primary-600); }
+    .sas-auth-feature { display: flex; align-items: flex-start; gap: .85rem; margin-bottom: 1.35rem; }
+    .sas-auth-feature:last-child { margin-bottom: 0; }
     .sas-auth-feature i {
-      width: 34px; height: 34px; flex: 0 0 34px; border-radius: var(--sas-radius-md);
-      background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; flex: 0 0 40px; border-radius: var(--sas-radius-md);
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
     }
-    .sas-auth-panel { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
-    .sas-auth-card { width: 100%; max-width: 420px; }
+    .sas-auth-feature .fw-semibold { color: var(--sas-gray-900); }
+    .sas-auth-brand__footer { color: var(--sas-gray-400); }
+
+    .sas-auth-panel { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; background: #fff; }
+    .sas-auth-card { width: 100%; max-width: 440px; }
+    .sas-auth-card .card { box-shadow: var(--sas-shadow-lg); border-radius: var(--sas-radius-xl); border: 1px solid var(--sas-gray-100); }
     @media (max-width: 991.98px) {
       .sas-auth-brand { display: none; }
     }
@@ -53,31 +65,33 @@
       </div>
 
       <div>
-        <h2 class="fw-bold mb-3">Run a calmer, fuller schedule.</h2>
+        <h2 class="sas-auth-brand__headline">Run a calmer,<br><em>fuller schedule.</em></h2>
         <div class="sas-auth-feature">
-          <i class="fi fi-rr-calendar-clock"></i>
+          <i class="fi fi-rr-calendar-clock bg-primary-subtle text-primary"></i>
           <div>
             <div class="fw-semibold">Smart scheduling</div>
-            <div class="text-white-50 small">Calendar, waitlist, and walk-ins in one view.</div>
+            <div class="text-muted small">Calendar, waitlist, and walk-ins in one view.</div>
           </div>
         </div>
         <div class="sas-auth-feature">
-          <i class="fi fi-rr-bell"></i>
+          <i class="fi fi-rr-bell bg-success-subtle text-success"></i>
           <div>
             <div class="fw-semibold">Fewer no-shows</div>
-            <div class="text-white-50 small">Automated reminders across email and WhatsApp.</div>
+            <div class="text-muted small">Automated reminders across email and WhatsApp.</div>
           </div>
         </div>
         <div class="sas-auth-feature">
-          <i class="fi fi-rr-chart-pie-alt"></i>
+          <i class="fi fi-rr-chart-pie-alt bg-accent-subtle text-accent"></i>
           <div>
             <div class="fw-semibold">Insights that matter</div>
-            <div class="text-white-50 small">Fill rate, no-show risk, and channel performance at a glance.</div>
+            <div class="text-muted small">Fill rate, no-show risk, and channel performance at a glance.</div>
           </div>
         </div>
       </div>
 
-      <div class="text-white-50 small">&copy; {{ date('Y') }} {{ config('app.name') }}</div>
+      @include('layouts.partials.auth-preview')
+
+      <div class="sas-auth-brand__footer small">&copy; {{ date('Y') }} {{ config('app.name') }}</div>
     </aside>
 
     <div class="sas-auth-panel">

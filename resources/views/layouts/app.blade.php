@@ -22,8 +22,13 @@
   <link rel="stylesheet" href="{{ asset('assets/libs/flatpickr/flatpickr.min.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/libs/datatables/datatables.min.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/sas-ui.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/app-shell.css') }}">
+  {{-- sas-ui.css/app-shell.css get edited far more often than the vendor
+       styles.css above — a plain asset() URL has no version, so browsers
+       can keep serving a stale cached copy after every edit. Suffixing
+       with the file's own mtime forces a fresh fetch only when it
+       actually changes. --}}
+  <link rel="stylesheet" href="{{ asset('assets/css/sas-ui.css') }}?v={{ filemtime(public_path('assets/css/sas-ui.css')) }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/app-shell.css') }}?v={{ filemtime(public_path('assets/css/app-shell.css')) }}">
   @php $sasBrandColor = auth()->user()?->clinic?->primary_color; @endphp
   @if ($sasBrandColor)
     <style>

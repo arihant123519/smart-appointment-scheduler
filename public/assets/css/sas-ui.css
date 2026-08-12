@@ -479,6 +479,31 @@ textarea.sas-outline-field__input {
   box-shadow: 0 0 0 .2rem var(--sas-danger-subtle);
 }
 
+/* Trailing icon (static) / show-password toggle (button) — .fieldset is
+   display:none and contributes no height, so the input's bottom edge lines
+   up with the column's own bottom edge; positioning from `bottom` here
+   keeps the icon aligned with the input regardless of label wrapping. */
+.sas-outline-field.has-trailing-icon .sas-outline-field__input { padding-right: 2.6rem; }
+.sas-outline-field__icon,
+.sas-outline-field__icon-btn {
+  position: absolute;
+  right: .75rem;
+  bottom: .55rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  color: var(--sas-gray-400);
+}
+.sas-outline-field__icon-btn {
+  border: 0;
+  background: transparent;
+  padding: 0 .1rem;
+  cursor: pointer;
+  transition: color .15s var(--sas-ease);
+}
+.sas-outline-field__icon-btn:hover { color: var(--sas-gray-600); }
+.sas-outline-field { position: relative; }
+
 /* --------------------------------------------------------------------------
    Alerts / toasts
    -------------------------------------------------------------------------- */
